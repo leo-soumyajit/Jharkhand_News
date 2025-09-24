@@ -5,6 +5,7 @@ import com.soumyajit.jharkhand_project.entity.Notification;
 import com.soumyajit.jharkhand_project.entity.User;
 import com.soumyajit.jharkhand_project.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -17,6 +18,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
 
     // Create and save a notification for a user
+    @Async
     public void notifyUser(Long userId, String message) {
         Notification notification = new Notification();
         User user = new User();

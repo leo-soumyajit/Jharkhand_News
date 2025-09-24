@@ -32,6 +32,7 @@ public class DistrictNewsController {
     private final DistrictNewsService districtNewsService;
     private final ObjectMapper objectMapper;
 
+    //give all
     @GetMapping("/{districtName}")
     public ResponseEntity<ApiResponse<List<DistrictNewsDto>>> getNewsByDistrict(@PathVariable String districtName) {
         try {
@@ -44,6 +45,7 @@ public class DistrictNewsController {
         }
     }
 
+    //give 5 days
     @GetMapping("/{districtName}/recent")
     public ResponseEntity<ApiResponse<List<DistrictNewsDto>>> getRecentNewsByDistrict(
             @PathVariable String districtName,
@@ -59,6 +61,7 @@ public class DistrictNewsController {
     }
 
 
+    //get news by id
     @GetMapping("/details/{id}")
     public ResponseEntity<ApiResponse<DistrictNewsDto>> getNewsById(@PathVariable Long id) {
         try {
@@ -70,6 +73,7 @@ public class DistrictNewsController {
         }
     }
 
+    //create news
     @PostMapping
     @PreAuthorize("hasRole('ADMIN') or hasRole('REPORTER')")
     public ResponseEntity<ApiResponse<DistrictNewsDto>> createDistrictNews(
@@ -94,6 +98,7 @@ public class DistrictNewsController {
     }
 
 
+    //update news
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('REPORTER')")
     public ResponseEntity<ApiResponse<DistrictNewsDto>> updateDistrictNews(
@@ -120,6 +125,7 @@ public class DistrictNewsController {
     }
 
 
+    //delete news
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('REPORTER')")
     public ResponseEntity<ApiResponse<String>> deleteDistrictNews(

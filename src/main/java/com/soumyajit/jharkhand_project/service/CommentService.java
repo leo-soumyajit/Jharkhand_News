@@ -25,6 +25,7 @@ public class CommentService {
     private final EventRepository eventRepository;
     private final JobRepository jobRepository;
     private final CommunityPostRepository communityPostRepository;
+    private final NotificationService notificationService; // injected notification service
     private final ModelMapper modelMapper;
 
     public CommentDto createDistrictNewsComment(Long newsId, CreateCommentRequest request, User author) {
@@ -38,6 +39,12 @@ public class CommentService {
 
         Comment savedComment = commentRepository.save(comment);
         log.info("Created district news comment with ID: {} by user: {}", savedComment.getId(), author.getEmail());
+
+        // Notify the district news author if not the same user
+        if (!districtNews.getAuthor().getId().equals(author.getId())) {
+            notificationService.notifyUser(districtNews.getAuthor().getId(),
+                    author.getFirstName() +" "+author.getLastName() + " commented on your news article '" + districtNews.getTitle() + "'");
+        }
 
         return modelMapper.map(savedComment, CommentDto.class);
     }
@@ -54,6 +61,12 @@ public class CommentService {
         Comment savedComment = commentRepository.save(comment);
         log.info("Created event comment with ID: {} by user: {}", savedComment.getId(), author.getEmail());
 
+        // Notify the event author if not the same user
+        if (!event.getAuthor().getId().equals(author.getId())) {
+            notificationService.notifyUser(event.getAuthor().getId(),
+                    author.getFirstName() +" "+author.getLastName() + " commented on your event '" + event.getTitle() + "'");
+        }
+
         return modelMapper.map(savedComment, CommentDto.class);
     }
 
@@ -69,6 +82,12 @@ public class CommentService {
         Comment savedComment = commentRepository.save(comment);
         log.info("Created job comment with ID: {} by user: {}", savedComment.getId(), author.getEmail());
 
+        // Notify the job author if not the same user
+        if (!job.getAuthor().getId().equals(author.getId())) {
+            notificationService.notifyUser(job.getAuthor().getId(),
+                    author.getFirstName() +" "+author.getLastName() + " commented on your job posting '" + job.getTitle() + "'");
+        }
+
         return modelMapper.map(savedComment, CommentDto.class);
     }
 
@@ -83,6 +102,12 @@ public class CommentService {
 
         Comment savedComment = commentRepository.save(comment);
         log.info("Created community post comment with ID: {} by user: {}", savedComment.getId(), author.getEmail());
+
+        // Notify community post author if not the same user
+        if (!communityPost.getAuthor().getId().equals(author.getId())) {
+            notificationService.notifyUser(communityPost.getAuthor().getId(),
+                    author.getFirstName() +" "+author.getLastName() + " commented on your community post '" + communityPost.getTitle() + "'");
+        }
 
         return modelMapper.map(savedComment, CommentDto.class);
     }
@@ -115,7 +140,6 @@ public class CommentService {
                 .collect(Collectors.toList());
     }
 
-    // Legacy method for backward compatibility (if needed)
     public List<CommentDto> getCommentsForPost(String postType, Long postId) {
         switch (postType.toLowerCase()) {
             case "district-news":

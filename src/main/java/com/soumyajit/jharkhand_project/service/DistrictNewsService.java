@@ -1,6 +1,5 @@
 package com.soumyajit.jharkhand_project.service;
 
-
 import com.soumyajit.jharkhand_project.dto.CommentDto;
 import com.soumyajit.jharkhand_project.dto.CreateDistrictNewsRequest;
 import com.soumyajit.jharkhand_project.dto.DistrictNewsDto;
@@ -67,12 +66,7 @@ public class DistrictNewsService {
                 .collect(Collectors.toList());
     }
 
-
-
-
-
-
-    @CacheEvict(value = "district-news", allEntries = true)
+    @CacheEvict(value = {"district-news", "recent-district-news"}, allEntries = true, beforeInvocation = true)
     public DistrictNewsDto createDistrictNews(CreateDistrictNewsRequest request,
                                               List<MultipartFile> images,
                                               User author) {
@@ -120,6 +114,7 @@ public class DistrictNewsService {
         return dto;
     }
 
+    @CacheEvict(value = {"district-news", "recent-district-news"}, allEntries = true, beforeInvocation = true)
     public DistrictNewsDto updateDistrictNews(Long id, UpdateDistrictNewsRequest request, User user) {
         DistrictNews existingNews = districtNewsRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("News not found with ID: " + id));
@@ -150,8 +145,7 @@ public class DistrictNewsService {
         }
     }
 
-
-    // Delete news
+    @CacheEvict(value = {"district-news", "recent-district-news"}, allEntries = true, beforeInvocation = true)
     public void deleteDistrictNews(Long id, User user) {
         DistrictNews news = districtNewsRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("News not found with ID: " + id));
@@ -164,8 +158,4 @@ public class DistrictNewsService {
         districtNewsRepository.delete(news);
         log.info("News deleted with ID: {} by user: {}", id, user.getEmail());
     }
-
-
-
 }
-
