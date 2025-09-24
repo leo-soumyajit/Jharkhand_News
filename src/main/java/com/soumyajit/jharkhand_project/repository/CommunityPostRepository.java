@@ -17,5 +17,7 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
 
     List<CommunityPost> findByStatusAndCreatedAtAfterOrderByCreatedAtDesc(PostStatus status, LocalDateTime after);
 
+    long countByAuthor(User author);
+
 
 }

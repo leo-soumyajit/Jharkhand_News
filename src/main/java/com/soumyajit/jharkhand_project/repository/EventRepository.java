@@ -18,5 +18,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     // Add this method to your EventRepository interface
     List<Event> findByStatusAndCreatedAtAfterOrderByCreatedAtDesc(PostStatus status, LocalDateTime after);
 
+    long countByAuthor(User author);
+
 }
 

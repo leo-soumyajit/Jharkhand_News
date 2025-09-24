@@ -26,4 +26,7 @@ public interface DistrictNewsRepository extends JpaRepository<DistrictNews, Long
             District district,
             LocalDateTime after
     );
+
+    long countByAuthor(User author);
+
 }

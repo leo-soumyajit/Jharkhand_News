@@ -1,6 +1,7 @@
 package com.soumyajit.jharkhand_project.repository;
 
 import com.soumyajit.jharkhand_project.entity.Comment;
+import com.soumyajit.jharkhand_project.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -14,4 +15,6 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     List<Comment> findByCommunityPostIdOrderByCreatedAtDesc(Long communityPostId);
     void deleteByCommunityPostId(Long communityPostId);
     void deleteByEventId(Long eventId);
+    long countByAuthor(User author);
+
 }

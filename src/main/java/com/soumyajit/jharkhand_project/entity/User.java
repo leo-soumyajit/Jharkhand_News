@@ -69,20 +69,6 @@ public class User implements UserDetails, Serializable {
         return email;
     }
 
-    @Override
-    public boolean isAccountNonExpired() {
-        return true; // Always true for simplification
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return true; // Always true for simplification
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true; // Always true for simplification
-    }
 
     @Override
     public boolean isEnabled() {

@@ -16,4 +16,6 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     List<Job> findByAuthorOrderByCreatedAtDesc(User author);
     List<Job> findByStatusAndCreatedAtAfterOrderByCreatedAtDesc(PostStatus status, LocalDateTime after);
 
+    long countByAuthor(User author);
+
 }
