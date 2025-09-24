@@ -33,6 +33,7 @@ public class JobService {
     private final CommentRepository commentRepository;
     private final CloudinaryService cloudinaryService;
     private final ModelMapper modelMapper;
+    private final NotificationService notificationService;
 
     @Cacheable(value = "jobs", key = "'approved'")
     public List<JobDto> getApprovedJobs() {
@@ -69,8 +70,13 @@ public class JobService {
         Job savedJob = jobRepository.save(job);
         log.info("Approved job with ID: {}", jobId);
 
+        // Notify the job poster about approval
+        notificationService.notifyUser(job.getAuthor().getId(),
+                "Your job posting '" + job.getTitle() + "' has been approved!");
+
         return modelMapper.map(savedJob, JobDto.class);
     }
+
 
     public List<JobDto> getPendingJobs() {
         List<Job> jobs = jobRepository.findByStatusOrderByCreatedAtDesc(PostStatus.PENDING);

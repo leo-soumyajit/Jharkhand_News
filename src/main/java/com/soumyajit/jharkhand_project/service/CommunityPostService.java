@@ -34,6 +34,7 @@ public class CommunityPostService {
     private final CommentRepository commentRepository;
     private final CloudinaryService cloudinaryService;
     private final ModelMapper modelMapper;
+    private final NotificationService notificationService;
 
     @Cacheable(value = "community-posts", key = "'approved'")
     public List<CommunityPostDto> getApprovedPosts() {
@@ -59,7 +60,7 @@ public class CommunityPostService {
         return modelMapper.map(savedPost, CommunityPostDto.class);
     }
 
-    @CacheEvict(value = "community-posts", allEntries = true)
+    @CacheEvict(value = {"community-posts", "recent-community-posts"}, allEntries = true)
     public CommunityPostDto approvePost(Long postId) {
         CommunityPost post = communityPostRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("Community post not found with ID: " + postId));
@@ -68,8 +69,13 @@ public class CommunityPostService {
         CommunityPost savedPost = communityPostRepository.save(post);
         log.info("Approved community post with ID: {}", postId);
 
+        // Notify the author about approval
+        notificationService.notifyUser(post.getAuthor().getId(),
+                "Your community post '" + post.getTitle() + "' has been approved!");
+
         return modelMapper.map(savedPost, CommunityPostDto.class);
     }
+
 
     public List<CommunityPostDto> getPendingPosts() {
         List<CommunityPost> posts = communityPostRepository.findByStatusOrderByCreatedAtDesc(PostStatus.PENDING);
@@ -93,7 +99,7 @@ public class CommunityPostService {
         return dto;
     }
 
-    @CacheEvict(value = "community-posts", allEntries = true)
+    @CacheEvict(value = {"community-posts","recent-community-posts"}, allEntries = true)
     public void deleteCommunityPost(Long postId, User user) {
         // Find the community post
         CommunityPost post = communityPostRepository.findById(postId)

@@ -66,9 +66,9 @@ app:
     from: thepeoplespress8@gmail.com
 
 cloudinary:
-  cloud-name: dho5umnhe
-  api-key: 421172579184413
-  api-secret: VM-rx3ZqvJx0PZQWxLsD_q8uWJs
+  cloud-name: ddaf68an1
+  api-key: 146275744557721
+  api-secret: 9rGysviAew0bEKMSjSHl0qmuulY
 
 logging:
   level:

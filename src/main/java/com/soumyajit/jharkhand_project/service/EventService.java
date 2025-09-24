@@ -33,8 +33,9 @@ public class EventService {
     private final CommentRepository commentRepository;
     private final CloudinaryService cloudinaryService;
     private final ModelMapper modelMapper;
+    private final NotificationService notificationService;
 
-    @Cacheable(value = "events", key = "'approved'")
+    @Cacheable(value = {"events","recent-events"}, key = "'approved'")
     public List<EventDto> getApprovedEvents() {
         List<Event> events = eventRepository.findByStatusOrderByCreatedAtDesc(PostStatus.APPROVED);
         return events.stream()
@@ -58,7 +59,7 @@ public class EventService {
         return modelMapper.map(savedEvent, EventDto.class);
     }
 
-    @CacheEvict(value = "events", allEntries = true)
+    @CacheEvict(value = {"events", "recent-events"}, allEntries = true)
     public EventDto approveEvent(Long eventId) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found with ID: " + eventId));
@@ -67,8 +68,13 @@ public class EventService {
         Event savedEvent = eventRepository.save(event);
         log.info("Approved event with ID: {}", eventId);
 
+        // Send notification to event owner
+        notificationService.notifyUser(event.getAuthor().getId(),
+                "Your event '" + event.getTitle() + "' has been approved!");
+
         return modelMapper.map(savedEvent, EventDto.class);
     }
+
 
     public List<EventDto> getPendingEvents() {
         List<Event> events = eventRepository.findByStatusOrderByCreatedAtDesc(PostStatus.PENDING);
@@ -91,7 +97,7 @@ public class EventService {
         dto.setComments(commentDtos);
         return dto;
     }
-    @CacheEvict(value = "events", allEntries = true)
+    @CacheEvict(value = {"events","recent-events"}, allEntries = true)
     public void deleteEvent(Long eventId, User user) {
         // Find the event
         Event event = eventRepository.findById(eventId)
