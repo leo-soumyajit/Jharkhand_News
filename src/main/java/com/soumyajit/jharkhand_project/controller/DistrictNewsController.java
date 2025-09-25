@@ -49,7 +49,7 @@ public class DistrictNewsController {
     @GetMapping("/{districtName}/recent")
     public ResponseEntity<ApiResponse<List<DistrictNewsDto>>> getRecentNewsByDistrict(
             @PathVariable String districtName,
-            @RequestParam(defaultValue = "5") int days) {
+            @RequestParam(defaultValue = "3") int days) {
         try {
             List<DistrictNewsDto> recentNews = districtNewsService.getRecentNewsByDistrict(districtName, days);
             return ResponseEntity.ok(ApiResponse.success("Recent news retrieved successfully", recentNews));

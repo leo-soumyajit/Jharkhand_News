@@ -3,9 +3,14 @@ package com.soumyajit.jharkhand_project.service;
 import com.soumyajit.jharkhand_project.dto.NotificationDto;
 import com.soumyajit.jharkhand_project.entity.Notification;
 import com.soumyajit.jharkhand_project.entity.User;
+import com.soumyajit.jharkhand_project.exception.AccessDeniedException;
+import com.soumyajit.jharkhand_project.exception.EntityNotFoundException;
 import com.soumyajit.jharkhand_project.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.transaction.annotation.Transactional;
+
+
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,6 +42,23 @@ public class NotificationService {
         return notifications.stream()
                 .map(n -> new NotificationDto(n.getId(), n.getMessage(), n.getCreatedAt()))
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void deleteNotificationByIdAndUser(Long id, User user) {
+        Notification notification = notificationRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Notification not found with ID: " + id));
+
+        if (!notification.getUser().getId().equals(user.getId())) {
+            throw new AccessDeniedException("Unauthorized to delete this notification");
+        }
+
+        notificationRepository.delete(notification);
+    }
+
+    @Transactional
+    public void deleteAllNotificationsByUser(User user) {
+        notificationRepository.deleteByUser(user);
     }
 }
 
