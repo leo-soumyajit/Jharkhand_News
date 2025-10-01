@@ -36,6 +36,7 @@ public class DistrictNewsService {
     private final CommentRepository commentRepository;
     private final CloudinaryService cloudinaryService;
     private final ModelMapper modelMapper;
+    private final NotificationService notificationService;
 
     @Cacheable(value = "district-news", key = "#districtName")
     public List<DistrictNewsDto> getNewsByDistrict(String districtName) {
@@ -85,6 +86,8 @@ public class DistrictNewsService {
 
         DistrictNews savedNews = districtNewsRepository.save(news);
         log.info("Created district news with ID: {} for district: {}", savedNews.getId(), district.getName());
+
+        notificationService.sendFullNewsEmail(savedNews);
 
         return convertToDto(savedNews);
     }
