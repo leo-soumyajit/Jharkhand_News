@@ -70,10 +70,11 @@ public class NotificationService {
         notificationRepository.deleteByUser(user);
     }
 
+    @Async("taskExecutor")
     public void sendFullNewsEmail(DistrictNews news) {
         List<Subscriber> subscribers = subscriberRepository.findBySubscribedTrue();
         String subject = "New post: " + news.getTitle();
-        String body = buildStyledNewsEmailBody(news); // See body builder below
+        String body = buildStyledNewsEmailBody(news); // Your existing styling method
 
         for (Subscriber subscriber : subscribers) {
             try {
@@ -82,8 +83,7 @@ public class NotificationService {
                 helper.setFrom("thepeoplespress8@gmail.com");
                 helper.setTo(subscriber.getEmail());
                 helper.setSubject(subject);
-                helper.setText(body, true); // 'true' means HTML
-
+                helper.setText(body, true); // HTML email
                 mailSender.send(message);
             } catch (Exception e) {
                 System.err.println("Failed to send email to " + subscriber.getEmail() + ": " + e.getMessage());
