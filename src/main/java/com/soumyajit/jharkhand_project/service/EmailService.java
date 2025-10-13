@@ -955,4 +955,87 @@ public class EmailService {
             </html>
             """;
     }
+
+    @Async
+    public void sendLoginAlertEmail(String to, String device, String location, String dateTime) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(to);
+            helper.setFrom(fromEmail);
+            helper.setSubject("New Login Alert - Jharkhand News");
+            helper.setText(buildLoginAlertTemplate(device, location, dateTime), true);
+
+            mailSender.send(message);
+            log.info("Login alert send to {}",to);
+        } catch (MessagingException e) {
+            throw new RuntimeException("Failed to send login alert email", e);
+        }
+    }
+
+    private String buildLoginAlertTemplate(String device, String location, String dateTime) {
+        return """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Login Alert - Jharkhand News</title>
+    </head>
+    <body style="margin:0; padding:0; background:#f5f6fa; font-family:Segoe UI, Arial, sans-serif; color:#232323;">
+        <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" border="0" style="background:#f5f6fa; padding: 0;">
+            <tr>
+                <td align="center">
+                <table role="presentation" width="480" cellspacing="0" cellpadding="0" border="0" style="background:#fff; margin:30px 0; box-shadow:0 1px 8px #0001; border-radius:10px;">
+                    <tr>
+                        <td align="center" style="padding:32px 24px 18px 24px;">
+                            <h2 style="margin:0; color:#222; font-size:1.7em; letter-spacing:-0.5px"><b>Jharkhand News</b></h2>
+                            <p style="color:#666; margin:9px 0 0 0; font-size:17px; font-weight:400;">We noticed a new login to your account.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding: 8px 24px 20px 24px;">
+                            <!-- device icon -->
+                            <div style="margin: 18px 0 10px 0;">
+                                <svg width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <circle cx="24" cy="24" r="22" stroke="#ccc" stroke-width="2"/>
+                                  <rect x="16" y="12" width="16" height="24" rx="3" fill="#fafafd" stroke="#444" stroke-width="1"/>
+                                  <circle cx="24" cy="32" r="2" fill="#808080"/>
+                                </svg>
+                            </div>
+                            <p style="margin: 0; font-size:16px; color:#3d4253;">
+                                <b>Device</b> · %s<br>
+                                <span style="color:#888; font-size:15px;"><b>Location</b>: %s</span><br>
+                                <span style="color:#888; font-size:15px;"><b>Time</b>: %s</span>
+                            </p>
+                            <p style="margin: 30px 0 12px 0; color:#606770; font-size:14px;">If this was you, you won’t be able to access certain security and account settings for a few days. You can still access these settings from a device you’ve logged in with in the past.</p>
+                            <hr style="border:none;border-top:1px solid #e0e0e0; margin:14px 0;">
+                            <p style="color:#606770; font-size:15px; margin:18px 0 8px 0;">
+                                If this wasn't you, you can
+                                <a href="YOUR_SECURITY_LINK" style="color:#316ff6; text-decoration:none;">secure your account</a>
+                                from a device you’ve logged in with in the past.<br>
+                                <a href="YOUR_LEARN_MORE_LINK" style="color:#316ff6; text-decoration:underline;">Learn more</a>
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="font-size:11px; color:#aaa; padding: 12px 24px 26px 24px;">
+                            <span>
+                                This message was produced and distributed by Jharkhand News, Ranchi, Jharkhand 834001. All rights reserved.<br/>
+                                <a href="YOUR_PRIVACY_LINK" style="color:#316ff6;text-decoration:none;">privacy policy</a> |
+                                <a href="YOUR_SUPPORT_LINK" style="color:#316ff6;text-decoration:none;">Contact Support</a>
+                            </span>
+                        </td>
+                    </tr>
+                </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """.formatted(device, location, dateTime);
+    }
+
+
+
 }

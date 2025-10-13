@@ -3,6 +3,8 @@ package com.soumyajit.jharkhand_project.controller;
 import com.soumyajit.jharkhand_project.Response.ApiResponse;
 import com.soumyajit.jharkhand_project.dto.*;
 import com.soumyajit.jharkhand_project.service.AuthService;
+import com.soumyajit.jharkhand_project.service.GeoIpService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +14,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 @RestController
@@ -21,6 +26,7 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final GeoIpService geoIpService;
 
     @PostMapping("/send-otp")
     public ResponseEntity<?> sendOtp(@Valid @RequestBody SendOtpRequest request) {
@@ -41,10 +47,24 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
-        String token = authService.login(body.get("email"), body.get("password"));
+    public ResponseEntity<?> login(@RequestBody Map<String, String> body, HttpServletRequest request) {
+        String device = request.getHeader("User-Agent");
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null) ip = request.getRemoteAddr();
+        String location = geoIpService.getLocation(ip);
+        String loginTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata")).format(DateTimeFormatter.ofPattern("MMMM dd yyyy HH:mm z"));
+
+        String token = authService.login(body.get("email"), body.get("password"), device, location, loginTime);
         return ResponseEntity.ok(Map.of("accessToken", token, "tokenType", "Bearer"));
     }
+
+    //without email for login
+//@PostMapping("/login")
+//public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
+//    String token = authService.login(body.get("email"), body.get("password"));
+//    return ResponseEntity.ok(Map.of("accessToken", token, "tokenType", "Bearer"));
+//}
+
 
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiResponse<String>> forgotPassword(@RequestBody ForgotPasswordRequest request) {

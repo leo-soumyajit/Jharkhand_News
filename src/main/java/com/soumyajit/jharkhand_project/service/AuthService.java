@@ -94,7 +94,7 @@ public class AuthService {
         log.info("User successfully registered: {}", user.getEmail());
     }
 
-    public String login(String email, String password) {
+    public String login(String email, String password, String device, String location, String loginTime) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(email, password)
         );
@@ -106,8 +106,27 @@ public class AuthService {
 
         UserDetails userDetails = (UserDetails) principal;
 
+        emailService.sendLoginAlertEmail(email, device, location, loginTime);
+
         return jwtUtils.generateJwtToken(userDetails);
     }
+
+
+//public String login(String email, String password) {
+//    Authentication authentication = authenticationManager.authenticate(
+//            new UsernamePasswordAuthenticationToken(email, password)
+//    );
+//
+//    Object principal = authentication.getPrincipal();
+//    if (!(principal instanceof UserDetails)) {
+//        throw new RuntimeException("Authentication principal is not of type UserDetails");
+//    }
+//
+//    UserDetails userDetails = (UserDetails) principal;
+//
+//    return jwtUtils.generateJwtToken(userDetails);
+//}
+
 
     // ========== NEW PASSWORD RESET METHODS (6-DIGIT CODES) ==========
 
