@@ -1,5 +1,6 @@
 package com.soumyajit.jharkhand_project.service;
 
+import com.soumyajit.jharkhand_project.dto.LoginReply;
 import com.soumyajit.jharkhand_project.dto.SignupRequest;
 import com.soumyajit.jharkhand_project.entity.User;
 import com.soumyajit.jharkhand_project.repository.UserRepository;
@@ -94,7 +95,7 @@ public class AuthService {
         log.info("User successfully registered: {}", user.getEmail());
     }
 
-    public String login(String email, String password, String device, String location, String loginTime) {
+    public LoginReply login(String email, String password, String device, String location, String loginTime) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(email, password)
         );
@@ -106,9 +107,18 @@ public class AuthService {
 
         UserDetails userDetails = (UserDetails) principal;
 
+        // Here the role is fetched from authorities
+        String role = userDetails.getAuthorities().stream()
+                .findFirst()
+                .map(grantedAuthority -> grantedAuthority.getAuthority())
+                .orElse("USER");
+
         emailService.sendLoginAlertEmail(email, device, location, loginTime);
 
-        return jwtUtils.generateJwtToken(userDetails);
+        String token = jwtUtils.generateJwtToken(userDetails);
+
+        // Return both token and role
+        return new LoginReply(token, role);
     }
 
 

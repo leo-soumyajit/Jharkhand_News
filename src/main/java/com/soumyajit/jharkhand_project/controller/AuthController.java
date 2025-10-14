@@ -54,9 +54,15 @@ public class AuthController {
         String location = geoIpService.getLocation(ip);
         String loginTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata")).format(DateTimeFormatter.ofPattern("MMMM dd yyyy HH:mm z"));
 
-        String token = authService.login(body.get("email"), body.get("password"), device, location, loginTime);
-        return ResponseEntity.ok(Map.of("accessToken", token, "tokenType", "Bearer"));
+        // Call login and get reply object
+        LoginReply loginReply = authService.login(body.get("email"), body.get("password"), device, location, loginTime);
+        return ResponseEntity.ok(Map.of(
+                "accessToken", loginReply.getToken(),
+                "tokenType", "Bearer",
+                "role", loginReply.getRole()
+        ));
     }
+
 
     //without email for login
 //@PostMapping("/login")
