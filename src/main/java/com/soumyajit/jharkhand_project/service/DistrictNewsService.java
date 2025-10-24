@@ -128,12 +128,12 @@ public class DistrictNewsService {
         }
 
         // Find District entity by name
-        District district = districtRepository.findByName(request.getDistrictName())
-                .orElseThrow(() -> new RuntimeException("District not found: " + request.getDistrictName()));
+//        District district = districtRepository.findByName(request.getDistrictName())
+//                .orElseThrow(() -> new RuntimeException("District not found: " + request.getDistrictName()));
 
         existingNews.setTitle(request.getTitle());
         existingNews.setContent(request.getContent());
-        existingNews.setDistrict(district);
+//        existingNews.setDistrict(district);
 
         existingNews.setUpdatedAt(LocalDateTime.now());
 
