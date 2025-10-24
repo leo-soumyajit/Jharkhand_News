@@ -95,29 +95,22 @@ public class AuthService {
         log.info("User successfully registered: {}", user.getEmail());
     }
 
-    public LoginReply login(String email, String password, String device, String location, String loginTime) {
+    public LoginReply login(String email, String password, String device, String ip, String loginTime) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(email, password)
         );
 
-        Object principal = authentication.getPrincipal();
-        if (!(principal instanceof UserDetails)) {
-            throw new RuntimeException("Authentication principal is not of type UserDetails");
-        }
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-        UserDetails userDetails = (UserDetails) principal;
-
-        // Here the role is fetched from authorities
         String role = userDetails.getAuthorities().stream()
                 .findFirst()
                 .map(grantedAuthority -> grantedAuthority.getAuthority())
                 .orElse("USER");
 
-        emailService.sendLoginAlertEmail(email, device, location, loginTime);
+        emailService.sendLoginAlertEmail(email, device, ip, loginTime);
 
         String token = jwtUtils.generateJwtToken(userDetails);
 
-        // Return both token and role
         return new LoginReply(token, role);
     }
 

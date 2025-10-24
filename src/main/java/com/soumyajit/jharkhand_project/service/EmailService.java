@@ -2,6 +2,7 @@ package com.soumyajit.jharkhand_project.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -17,6 +18,9 @@ import jakarta.mail.internet.MimeMessage;
 public class EmailService {
 
     private final JavaMailSender mailSender;
+
+    @Autowired
+    private GeoIpService geoIpService;
 
     @Value("${app.email.from}")
     private String fromEmail;
@@ -956,9 +960,11 @@ public class EmailService {
             """;
     }
 
-    @Async
-    public void sendLoginAlertEmail(String to, String device, String location, String dateTime) {
+    @Async("taskExecutor") // Specifies which executor to use
+    public void sendLoginAlertEmail(String to, String device, String ip, String dateTime) {
         try {
+            String location = geoIpService.getLocation(ip);
+
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
@@ -968,9 +974,9 @@ public class EmailService {
             helper.setText(buildLoginAlertTemplate(device, location, dateTime), true);
 
             mailSender.send(message);
-            log.info("Login alert send to {}",to);
+            log.info("Login alert sent to {} for login from {}", to, location);
         } catch (MessagingException e) {
-            throw new RuntimeException("Failed to send login alert email", e);
+            log.error("Failed to send login alert email to {}", to, e);
         }
     }
 
