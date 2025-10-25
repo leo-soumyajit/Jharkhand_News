@@ -11,6 +11,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
@@ -29,6 +30,7 @@ public class UserService {
     private final CommentRepository commentRepository;
     private final NotificationRepository notificationRepository;
     private final ModelMapper modelMapper;
+    private final ImageUploadService imageUploadService;
 
     public UserProfileDto getUserProfile(User user) {
         User currentUser = userRepository.findById(user.getId())
@@ -54,6 +56,13 @@ public class UserService {
                 user.getEmail(), request.getFirstName(), request.getLastName());
 
         return updatedProfile;
+    }
+
+    @Transactional
+    public void updateUserProfileImage(User user, MultipartFile file) {
+        String imageUrl = imageUploadService.uploadFile(file);
+        user.setProfileImageUrl(imageUrl);
+        User updatedUser = userRepository.save(user);
     }
 
     public UserStatsDto getUserStats(User user) {

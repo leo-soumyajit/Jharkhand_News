@@ -40,6 +40,9 @@ public class User implements UserDetails, Serializable {
     @Column(nullable = false)
     private String lastName;
 
+    @Column
+    private String profileImageUrl;
+
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private Role role = Role.USER;

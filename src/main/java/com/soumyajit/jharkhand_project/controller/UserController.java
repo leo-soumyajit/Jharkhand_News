@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/user")
@@ -34,6 +35,19 @@ public class UserController {
         UserProfileDto updatedProfile = userService.updateUserProfile(user, request);
         return ResponseEntity.ok(ApiResponse.success("Profile updated successfully", updatedProfile));
     }
+
+    @PutMapping("/profile/image")
+    public ResponseEntity<ApiResponse<Void>> updateUserProfileImage(
+            @AuthenticationPrincipal User user,
+            @RequestParam("image") MultipartFile imageFile) {
+
+        if (imageFile.isEmpty()) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Image file is required."));
+        }
+        userService.updateUserProfileImage(user, imageFile);
+        return ResponseEntity.ok(ApiResponse.success("Profile image updated successfully", null));
+    }
+
 
     @GetMapping("/stats")
     public ResponseEntity<ApiResponse<UserStatsDto>> getUserStats(@AuthenticationPrincipal User user) {
