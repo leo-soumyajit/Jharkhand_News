@@ -2,6 +2,7 @@ package com.soumyajit.jharkhand_project.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.soumyajit.jharkhand_project.entity.PostStatus;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,6 +23,7 @@ public class JobDto {
     private String company;
     private String location;
     private String salaryRange;
+    private String reglink;
     private LocalDateTime applicationDeadline;
     private AuthorDto author;
     private List<String> imageUrls;

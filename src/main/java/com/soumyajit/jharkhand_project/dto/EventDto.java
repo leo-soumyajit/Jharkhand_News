@@ -19,6 +19,7 @@ public class EventDto {
     private Long id;
     private String title;
     private String description;
+    private String reglink;
     private LocalDateTime eventDate;
     private String location;
     private AuthorDto author;

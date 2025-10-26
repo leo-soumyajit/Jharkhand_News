@@ -29,6 +29,8 @@ public class Event {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    private String reglink;
+
     private LocalDateTime eventDate;
 
     private String location;

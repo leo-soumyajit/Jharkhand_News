@@ -3,6 +3,7 @@ package com.soumyajit.jharkhand_project.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,5 +32,8 @@ public class CreateJobRequest {
 
     @Future(message = "Application deadline must be in the future")
     private LocalDateTime applicationDeadline;
+
+    @Pattern(regexp = "^(http|https)://.*$", message = "Registration link must be a valid URL")
+    private String reglink;
 }
 

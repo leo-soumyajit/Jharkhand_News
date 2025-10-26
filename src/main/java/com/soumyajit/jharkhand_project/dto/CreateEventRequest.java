@@ -3,6 +3,7 @@ package com.soumyajit.jharkhand_project.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,6 +28,9 @@ public class CreateEventRequest {
 
     @Future(message = "Event date must be in the future")
     private LocalDateTime eventDate;
+
+    @Pattern(regexp = "^(http|https)://.*$", message = "Registration link must be a valid URL")
+    private String reglink;
 
     private String location;
 }

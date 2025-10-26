@@ -1,6 +1,7 @@
 package com.soumyajit.jharkhand_project.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,11 +30,15 @@ public class Job {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+
+
     private String company;
 
     private String location;
 
     private String salaryRange;
+
+    private String reglink;
 
     private LocalDateTime applicationDeadline;
 
