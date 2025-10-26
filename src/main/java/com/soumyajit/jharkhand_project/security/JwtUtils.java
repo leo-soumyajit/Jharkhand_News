@@ -22,10 +22,10 @@ public class JwtUtils {
     private String jwtSecret;
 
     @Value("${app.jwt.expiration}")
-    private int jwtExpirationMs;
+    private long jwtExpirationMs;
 
     @Value("${app.jwt.refresh-expiration}")
-    private int jwtRefreshExpirationMs;
+    private long jwtRefreshExpirationMs;
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
@@ -45,7 +45,7 @@ public class JwtUtils {
         return createToken(claims, username, jwtRefreshExpirationMs);
     }
 
-    private String createToken(Map<String, Object> claims, String subject, int expiration) {
+    private String createToken(Map<String, Object> claims, String subject, long expiration) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expiration);
 

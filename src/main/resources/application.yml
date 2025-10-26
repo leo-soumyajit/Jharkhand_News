@@ -55,8 +55,8 @@ server:
 app:
   jwt:
     secret: hoieihfor3gbndopejo9pprf3hoifeqoindoicnvoief90r3wiuwe
-    expiration: 3600000 # 1 hour in ms
-    refresh-expiration: 604800000 # 7 days in ms
+    expiration: 15552000000 # 6 months in ms (assuming 30 days per month)
+    refresh-expiration: 31536000000 # 1 year in ms (assuming 365 days per year)
 
   otp:
     expiration: 300000 # 5 minutes in ms
