@@ -35,8 +35,8 @@ spring:
 
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 50MB
+      max-file-size: 50MB
+      max-request-size: 100MB
 
   mail:
     host: smtp.gmail.com
@@ -66,9 +66,9 @@ app:
     from: thepeoplespress8@gmail.com
 
 cloudinary:
-  cloud-name: ddaf68an1
-  api-key: 146275744557721
-  api-secret: 9rGysviAew0bEKMSjSHl0qmuulY
+  cloud-name: duf6vxnbj
+  api-key: 142139991245357
+  api-secret: yDOSHiSDflYzaWXqGLvCrPJrSjU
 
 logging:
   level:

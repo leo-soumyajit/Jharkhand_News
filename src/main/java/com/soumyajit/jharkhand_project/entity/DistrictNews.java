@@ -43,6 +43,12 @@ public class DistrictNews {
     @Column(name = "image_url")
     private List<String> imageUrls = new ArrayList<>();
 
+    @ElementCollection
+    @CollectionTable(name = "district_news_cloudinary_ids",
+            joinColumns = @JoinColumn(name = "news_id"))
+    @Column(name = "public_id")
+    private List<String> cloudinaryPublicIds = new ArrayList<>();
+
     @Builder.Default
     private Boolean published = true;
 

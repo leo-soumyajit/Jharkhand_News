@@ -13,6 +13,7 @@ import com.soumyajit.jharkhand_project.repository.DistrictNewsRepository;
 import com.soumyajit.jharkhand_project.repository.DistrictRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.cache.annotation.CacheEvict;
@@ -80,8 +81,23 @@ public class DistrictNewsService {
         news.setPublished(true);
 
         if (images != null && !images.isEmpty()) {
-            List<String> imageUrls = cloudinaryService.uploadImages(images);
+            List<CloudinaryService.CloudinaryUploadResult> uploadResults =
+                    cloudinaryService.uploadImagesWithPublicIds(images);
+
+            // Extract URLs
+            List<String> imageUrls = uploadResults.stream()
+                    .map(CloudinaryService.CloudinaryUploadResult::getUrl)
+                    .collect(Collectors.toList());
+
+            // Extract public_ids
+            List<String> publicIds = uploadResults.stream()
+                    .map(CloudinaryService.CloudinaryUploadResult::getPublicId)
+                    .collect(Collectors.toList());
+
             news.setImageUrls(imageUrls);
+            news.setCloudinaryPublicIds(publicIds);
+
+            log.info("Uploaded {} images for district news", imageUrls.size());
         }
 
         DistrictNews savedNews = districtNewsRepository.save(news);
@@ -91,6 +107,9 @@ public class DistrictNewsService {
 
         return convertToDto(savedNews);
     }
+
+
+
 
     public DistrictNewsDto getNewsById(Long id) {
         DistrictNews news = districtNewsRepository.findById(id)
@@ -158,6 +177,16 @@ public class DistrictNewsService {
             throw new RuntimeException("Unauthorized: You can only delete your own news");
         }
 
+        // Delete images from Cloudinary BEFORE deleting from database
+        if (news.getCloudinaryPublicIds() != null && !news.getCloudinaryPublicIds().isEmpty()) {
+            log.info("Deleting {} images from Cloudinary for news ID: {}",
+                    news.getCloudinaryPublicIds().size(), id);
+            cloudinaryService.deleteImages(news.getCloudinaryPublicIds());
+        } else {
+            log.warn("No Cloudinary public_ids found for news ID: {}", id);
+        }
+
+        // Delete from database
         districtNewsRepository.delete(news);
         log.info("News deleted with ID: {} by user: {}", id, user.getEmail());
     }
