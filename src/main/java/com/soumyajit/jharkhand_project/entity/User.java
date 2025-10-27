@@ -31,7 +31,7 @@ public class User implements UserDetails, Serializable {
     private String email;
 
     @JsonIgnore
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String password;
 
     @Column(nullable = false)
@@ -42,6 +42,11 @@ public class User implements UserDetails, Serializable {
 
     @Column
     private String profileImageUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    @Builder.Default
+    private AuthProvider authProvider = AuthProvider.LOCAL;
 
     @Enumerated(EnumType.STRING)
     @Builder.Default
@@ -62,6 +67,13 @@ public class User implements UserDetails, Serializable {
         REPORTER
     }
 
+    public enum AuthProvider {
+        LOCAL,
+        GOOGLE,
+        FACEBOOK,
+        GITHUB
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
@@ -72,6 +84,10 @@ public class User implements UserDetails, Serializable {
         return email;
     }
 
+    @Override
+    public String getPassword() {
+        return password;
+    }
 
     @Override
     public boolean isEnabled() {

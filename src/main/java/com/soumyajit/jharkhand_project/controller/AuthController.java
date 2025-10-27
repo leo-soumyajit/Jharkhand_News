@@ -2,6 +2,9 @@ package com.soumyajit.jharkhand_project.controller;
 
 import com.soumyajit.jharkhand_project.Response.ApiResponse;
 import com.soumyajit.jharkhand_project.dto.*;
+import com.soumyajit.jharkhand_project.entity.User;
+import com.soumyajit.jharkhand_project.repository.UserRepository;
+import com.soumyajit.jharkhand_project.security.JwtUtils;
 import com.soumyajit.jharkhand_project.service.AuthService;
 import com.soumyajit.jharkhand_project.service.GeoIpService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,14 +12,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -27,6 +30,8 @@ public class AuthController {
 
     private final AuthService authService;
     private final GeoIpService geoIpService;
+    private final JwtUtils jwtUtils;
+    private final UserRepository userRepository;
 
     @PostMapping("/send-otp")
     public ResponseEntity<?> sendOtp(@Valid @RequestBody SendOtpRequest request) {
@@ -63,14 +68,39 @@ public class AuthController {
         ));
     }
 
+    // OAuth2 Google Login - Get JWT Token after authentication
+    @GetMapping("/google/token")
+    public ResponseEntity<?> getGoogleToken(@AuthenticationPrincipal OAuth2User oauth2User) {
+        try {
+            if (oauth2User == null) {
+                return ResponseEntity.status(401).body(Map.of("error", "Not authenticated with Google"));
+            }
 
-    //without email for login
-//@PostMapping("/login")
-//public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
-//    String token = authService.login(body.get("email"), body.get("password"));
-//    return ResponseEntity.ok(Map.of("accessToken", token, "tokenType", "Bearer"));
-//}
+            String email = oauth2User.getAttribute("email");
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found after OAuth2 authentication"));
 
+            // Generate JWT token
+            String token = jwtUtils.generateTokenFromUsername(user.getEmail());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("accessToken", token);
+            response.put("tokenType", "Bearer");
+            response.put("role", user.getRole().toString());
+            response.put("email", user.getEmail());
+            response.put("firstName", user.getFirstName());
+            response.put("lastName", user.getLastName());
+            response.put("authProvider", user.getAuthProvider().toString());
+
+            log.info("JWT token generated for Google OAuth user: {}", email);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error generating token for Google OAuth user", e);
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to generate token"));
+        }
+    }
 
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiResponse<String>> forgotPassword(@RequestBody ForgotPasswordRequest request) {
@@ -93,5 +123,4 @@ public class AuthController {
             return ResponseEntity.badRequest().body(ApiResponse.error("Invalid or expired token"));
         }
     }
-
 }

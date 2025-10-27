@@ -2,6 +2,18 @@ spring:
   application:
     name: jharkhand_project
 
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: 208937376257-rkmkeicd91ltac7qgpuefk1ikkus552g.apps.googleusercontent.com
+            client-secret: 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
+            scope:
+              - openid
+              - profile
+              - email
+
   datasource:
     url: jdbc:postgresql://localhost:5432/jharkhand
     username: postgres
@@ -74,3 +86,6 @@ logging:
   level:
     com.jharkhand.news: DEBUG
     org.springframework.security: DEBUG
+
+
+

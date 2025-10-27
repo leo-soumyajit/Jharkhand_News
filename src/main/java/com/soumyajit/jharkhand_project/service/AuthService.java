@@ -78,6 +78,7 @@ public class AuthService {
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .password(passwordEncoder.encode(request.getPassword()))
+                .authProvider(User.AuthProvider.LOCAL)  // Added this line
                 .emailVerified(true)
                 .role(User.Role.USER)
                 .build();
@@ -94,6 +95,7 @@ public class AuthService {
 
         log.info("User successfully registered: {}", user.getEmail());
     }
+
 
     public LoginReply login(String email, String password, String device, String ip, String loginTime) {
         Authentication authentication = authenticationManager.authenticate(
@@ -212,7 +214,7 @@ public class AuthService {
         }
     }
 
-    // ========== PRIVATE HELPER METHODS (UNCHANGED) ==========
+
 
     private String generateOtp() {
         Random random = new SecureRandom();

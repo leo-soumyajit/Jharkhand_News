@@ -32,8 +32,10 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
         String path = request.getServletPath();
 
-        // Exclude auth endpoints from JWT validation
-        if (path.startsWith("/api/v1/auth/")) {
+        // Exclude auth and OAuth2 endpoints from JWT validation
+        if (path.startsWith("/api/v1/auth/") ||
+                path.startsWith("/oauth2/") ||
+                path.startsWith("/login/oauth2/")) {
             filterChain.doFilter(request, response);
             return;
         }

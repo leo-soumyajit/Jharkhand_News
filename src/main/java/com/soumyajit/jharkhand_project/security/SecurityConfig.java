@@ -3,7 +3,6 @@ package com.soumyajit.jharkhand_project.security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -21,7 +20,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import jakarta.servlet.http.HttpServletResponse;
 import java.util.Arrays;
 import java.util.List;
 
@@ -34,6 +32,8 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final AuthTokenFilter authTokenFilter;
     private final AuthEntryPointJwt unauthorizedHandler;
+    private final CustomOidcUserService customOidcUserService; // Correct service
+    private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
 
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
@@ -52,18 +52,29 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)) // Correct for OAuth2
                 .authenticationProvider(authenticationProvider())
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))  // use your AuthEntryPointJwt here
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .authorizeHttpRequests(auth -> auth
-//                        .requestMatchers("/api/v1/auth/**").permitAll()
-                        .requestMatchers("/api/v1/district-news/**").authenticated()
+                        // Public endpoints for authentication
+//                        .requestMatchers("/oauth2/**", "/login/oauth2/**", "/api/v1/auth/**").permitAll()
+
+                        // Your explicitly protected endpoints
+//                        .requestMatchers("/api/v1/district-news/**").authenticated()
                         .requestMatchers("/api/v1/events").authenticated()
                         .requestMatchers("/api/v1/jobs").authenticated()
                         .requestMatchers("/api/v1/community").authenticated()
                         .requestMatchers("/api/v1/comments/**").authenticated()
                         .requestMatchers("/api/v1/districts").authenticated()
+
+                        // All other requests are permitted by default
                         .anyRequest().permitAll()
+                )
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .oidcUserService(customOidcUserService) // Correctly wired
+                        )
+                        .successHandler(oAuth2AuthenticationSuccessHandler)
                 )
                 .addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
 
