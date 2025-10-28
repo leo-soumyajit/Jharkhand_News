@@ -17,4 +17,8 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     void deleteByEventId(Long eventId);
     long countByAuthor(User author);
 
+    List<Comment> findByPropertyIdOrderByCreatedAtDesc(Long propertyId);
+    void deleteByPropertyId(Long propertyId);
+
+
 }

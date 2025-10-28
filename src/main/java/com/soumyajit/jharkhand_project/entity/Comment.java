@@ -28,11 +28,17 @@ public class Comment {
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
 
-    // Generic fields for different post types
+
     private Long districtNewsId;
     private Long eventId;
     private Long jobId;
     private Long communityPostId;
+
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "property_id")
+    private Property property;
+
 
     @CreationTimestamp
     private LocalDateTime createdAt;

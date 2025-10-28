@@ -3,6 +3,7 @@ package com.soumyajit.jharkhand_project.security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -52,7 +53,8 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)) // Correct for OAuth2
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .authorizeHttpRequests(auth -> auth
@@ -66,8 +68,14 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/community").authenticated()
                         .requestMatchers("/api/v1/comments/**").authenticated()
                         .requestMatchers("/api/v1/districts").authenticated()
+                                .requestMatchers("/api/v1/properties/my-properties").authenticated()
+                                .requestMatchers("/api/v1/properties/pending").hasAuthority("ROLE_ADMIN")
+                                .requestMatchers(HttpMethod.POST, "/api/v1/properties/*/approve").hasAuthority("ROLE_ADMIN")
+                                .requestMatchers(HttpMethod.POST, "/api/v1/properties").authenticated()
+                                .requestMatchers(HttpMethod.DELETE, "/api/v1/properties/**").authenticated()
+                                .requestMatchers(HttpMethod.PUT, "/api/v1/properties/**").authenticated()
+                                .requestMatchers("/api/v1/properties/**").permitAll()
 
-                        // All other requests are permitted by default
                         .anyRequest().permitAll()
                 )
                 .oauth2Login(oauth2 -> oauth2
