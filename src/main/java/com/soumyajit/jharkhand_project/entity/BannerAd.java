@@ -34,6 +34,10 @@ public class BannerAd {
 
 
     @Enumerated(EnumType.STRING)
+    private Size size;
+
+
+    @Enumerated(EnumType.STRING)
     private Status status;
 
     private String publicId;
@@ -42,5 +46,10 @@ public class BannerAd {
     public enum Status {
         ACTIVE,
         INACTIVE
+    }
+
+    public enum Size {
+        SMALL,
+        LARGE
     }
 }

@@ -56,6 +56,43 @@ public class BannerAdService {
                 .collect(Collectors.toList());
     }
 
+    // Get active SMALL banners
+    @Transactional
+    public List<BannerAdDto> getActiveSmallAds() {
+        LocalDateTime now = LocalDateTime.now();
+        List<BannerAd> activeAds = bannerAdRepository.findByStatusAndSizeAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                Status.ACTIVE, BannerAd.Size.SMALL, now, now);
+
+        // Increment impression count
+        activeAds.forEach(ad -> {
+            ad.setImpressionsCount(ad.getImpressionsCount() + 1);
+        });
+        bannerAdRepository.saveAll(activeAds);
+
+        return activeAds.stream()
+                .map(ad -> modelMapper.map(ad, BannerAdDto.class))
+                .collect(Collectors.toList());
+    }
+
+    // Get active LARGE banners
+    @Transactional
+    public List<BannerAdDto> getActiveLargeAds() {
+        LocalDateTime now = LocalDateTime.now();
+        List<BannerAd> activeAds = bannerAdRepository.findByStatusAndSizeAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                Status.ACTIVE, BannerAd.Size.LARGE, now, now);
+
+        // Increment impression count
+        activeAds.forEach(ad -> {
+            ad.setImpressionsCount(ad.getImpressionsCount() + 1);
+        });
+        bannerAdRepository.saveAll(activeAds);
+
+        return activeAds.stream()
+                .map(ad -> modelMapper.map(ad, BannerAdDto.class))
+                .collect(Collectors.toList());
+    }
+
+
 
     public BannerAdDto getBannerAdById(Long id) {
         BannerAd ad = bannerAdRepository.findById(id)

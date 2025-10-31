@@ -12,4 +12,8 @@ public interface BannerAdRepository extends JpaRepository<BannerAd, Long> {
 
     List<BannerAd> findByStatusAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
             Status status, LocalDateTime current1, LocalDateTime current2);
+
+    List<BannerAd> findByStatusAndSizeAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+            Status status, BannerAd.Size size, LocalDateTime current1, LocalDateTime current2);
+
 }

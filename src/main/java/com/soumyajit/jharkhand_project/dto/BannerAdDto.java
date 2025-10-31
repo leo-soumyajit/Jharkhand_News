@@ -13,5 +13,6 @@ public class BannerAdDto {
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private String status;
+    private String size;
     private String publicId;
 }

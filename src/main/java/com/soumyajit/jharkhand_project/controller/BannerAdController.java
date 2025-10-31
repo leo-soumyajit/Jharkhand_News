@@ -54,6 +54,32 @@ public class BannerAdController {
     }
 
 
+    @GetMapping("/active/small")
+    public ResponseEntity<ApiResponse<List<BannerAdDto>>> getActiveSmallAds() {
+        try {
+            List<BannerAdDto> activeAds = bannerAdService.getActiveSmallAds();
+            return ResponseEntity.ok(ApiResponse.success("Active small banner ads", activeAds));
+        } catch (Exception e) {
+            log.error("Error fetching active small banner ads", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Failed to retrieve active small banner ads"));
+        }
+    }
+
+    @GetMapping("/active/large")
+    public ResponseEntity<ApiResponse<List<BannerAdDto>>> getActiveLargeAds() {
+        try {
+            List<BannerAdDto> activeAds = bannerAdService.getActiveLargeAds();
+            return ResponseEntity.ok(ApiResponse.success("Active large banner ads", activeAds));
+        } catch (Exception e) {
+            log.error("Error fetching active large banner ads", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Failed to retrieve active large banner ads"));
+        }
+    }
+
+
+
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<BannerAdDto>> createBannerAd(
