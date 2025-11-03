@@ -15,10 +15,13 @@ spring:
               - email
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}
+    url: jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}?currentSchema=public
     username: postgres
     password: 7908288829
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
 
   jpa:
     hibernate:
@@ -29,7 +32,13 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
         jdbc:
-          time_zone: UTC
+          time_zone: Asia/Kolkata
+        use_jdbc_metadata_defaults: false
+
+  jackson:
+    time-zone: Asia/Kolkata
+    serialization:
+      write-dates-as-timestamps: false
 
   data:
     redis:
@@ -86,6 +95,3 @@ logging:
   level:
     com.jharkhand.news: DEBUG
     org.springframework.security: DEBUG
-
-
-
