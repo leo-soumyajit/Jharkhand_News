@@ -89,7 +89,7 @@ public class EventService {
 
         EventDto dto = modelMapper.map(event, EventDto.class);
 
-        List<Comment> comments = commentRepository.findByEventIdOrderByCreatedAtDesc(id);
+        List<Comment> comments = commentRepository.findByEventIdOrderByCreatedAtAsc(id);
         List<CommentDto> commentDtos = comments.stream()
                 .map(comment -> modelMapper.map(comment, CommentDto.class))
                 .collect(Collectors.toList());

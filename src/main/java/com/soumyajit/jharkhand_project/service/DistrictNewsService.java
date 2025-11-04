@@ -127,7 +127,7 @@ public class DistrictNewsService {
     private DistrictNewsDto convertToDtoWithComments(DistrictNews news) {
         DistrictNewsDto dto = convertToDto(news);
 
-        List<Comment> comments = commentRepository.findByDistrictNewsIdOrderByCreatedAtDesc(news.getId());
+        List<Comment> comments = commentRepository.findByDistrictNewsIdOrderByCreatedAtAsc(news.getId());
         List<CommentDto> commentDtos = comments.stream()
                 .map(comment -> modelMapper.map(comment, CommentDto.class))
                 .collect(Collectors.toList());

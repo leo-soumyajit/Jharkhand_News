@@ -1,17 +1,23 @@
+// In: src/main/java/com/soumyajit/jharkhand_project/service/CommentService.java
+
 package com.soumyajit.jharkhand_project.service;
 
+import com.soumyajit.jharkhand_project.dto.AuthorDto;
 import com.soumyajit.jharkhand_project.dto.CommentDto;
 import com.soumyajit.jharkhand_project.dto.CreateCommentRequest;
 import com.soumyajit.jharkhand_project.entity.*;
 import com.soumyajit.jharkhand_project.repository.*;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
+import org.modelmapper.ModelMapper; // Still used for simple cases
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.persistence.EntityNotFoundException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,153 +31,163 @@ public class CommentService {
     private final EventRepository eventRepository;
     private final JobRepository jobRepository;
     private final CommunityPostRepository communityPostRepository;
-    private final NotificationService notificationService; // injected notification service
+    private final PropertyRepository propertyRepository;
+    private final NotificationService notificationService;
     private final ModelMapper modelMapper;
 
-    public CommentDto createDistrictNewsComment(Long newsId, CreateCommentRequest request, User author) {
-        DistrictNews districtNews = districtNewsRepository.findById(newsId)
-                .orElseThrow(() -> new EntityNotFoundException("District news not found with ID: " + newsId));
+    private interface PostInfoProvider {
+        void setPostIdOnComment(Comment comment, Comment parent);
+        User getPostAuthor();
+        String getPostTitle();
+    }
 
+    private CommentDto mapCommentToDto(Comment comment) {
+        CommentDto dto = new CommentDto();
+        dto.setId(comment.getId());
+        dto.setContent(comment.getContent());
+        dto.setCreatedAt(comment.getCreatedAt());
+        dto.setUpdatedAt(comment.getUpdatedAt());
+
+        // Manually create and set AuthorDto
+        if (comment.getAuthor() != null) {
+            User authorEntity = comment.getAuthor();
+            AuthorDto authorDto = new AuthorDto();
+            authorDto.setId(authorEntity.getId());
+            authorDto.setFirstName(authorEntity.getFirstName());
+            authorDto.setLastName(authorEntity.getLastName());
+            authorDto.setProfileImageUrl(authorEntity.getProfileImageUrl());
+            authorDto.setRole(User.Role.valueOf(authorEntity.getRole().name()));
+            dto.setAuthor(authorDto);
+        }
+
+        if (comment.getParentComment() != null) {
+            dto.setParentId(comment.getParentComment().getId());
+        }
+
+        dto.setReplies(new ArrayList<>());
+
+        return dto;
+    }
+
+
+    private List<CommentDto> buildCommentTree(List<Comment> comments) {
+        Map<Long, CommentDto> commentDtoMap = new LinkedHashMap<>();
+
+        for (Comment comment : comments) {
+            commentDtoMap.put(comment.getId(), mapCommentToDto(comment));
+        }
+
+        List<CommentDto> rootComments = new ArrayList<>();
+        for (CommentDto dto : commentDtoMap.values()) {
+            if (dto.getParentId() != null) {
+                CommentDto parentDto = commentDtoMap.get(dto.getParentId());
+                if (parentDto != null) {
+                    parentDto.getReplies().add(dto);
+                }
+            } else {
+                rootComments.add(dto);
+            }
+        }
+
+        return rootComments;
+    }
+
+    private CommentDto createCommentInternal(CreateCommentRequest request, User author, PostInfoProvider infoProvider) {
         Comment comment = new Comment();
         comment.setContent(request.getContent());
         comment.setAuthor(author);
-        comment.setDistrictNewsId(districtNews.getId());
 
-        Comment savedComment = commentRepository.save(comment);
-        log.info("Created district news comment with ID: {} by user: {}", savedComment.getId(), author.getEmail());
-
-        // Notify the district news author if not the same user
-        if (!districtNews.getAuthor().getId().equals(author.getId())) {
-            notificationService.notifyUser(districtNews.getAuthor().getId(),
-                    author.getFirstName() +" "+author.getLastName() + " commented on your news article '" + districtNews.getTitle() + "'");
+        if (request.getParentId() != null) {
+            Comment parentComment = commentRepository.findById(request.getParentId())
+                    .orElseThrow(() -> new EntityNotFoundException("Parent comment not found"));
+            comment.setParentComment(parentComment);
+            infoProvider.setPostIdOnComment(comment, parentComment);
+            if (!parentComment.getAuthor().getId().equals(author.getId())) {
+                notificationService.notifyUser(parentComment.getAuthor().getId(), author.getFirstName() + " " + author.getLastName() + " replied to your comment.");
+            }
+        } else {
+            infoProvider.setPostIdOnComment(comment, null);
         }
 
-        return modelMapper.map(savedComment, CommentDto.class);
+        Comment savedComment = commentRepository.save(comment);
+        User postAuthor = infoProvider.getPostAuthor();
+        if (!postAuthor.getId().equals(author.getId())) {
+            notificationService.notifyUser(postAuthor.getId(), author.getFirstName() + " " + author.getLastName() + " commented on your post '" + infoProvider.getPostTitle() + "'");
+        }
+
+        return mapCommentToDto(savedComment);
+    }
+
+    public CommentDto createDistrictNewsComment(Long newsId, CreateCommentRequest request, User author) {
+        DistrictNews news = districtNewsRepository.findById(newsId).orElseThrow(() -> new EntityNotFoundException("District news not found"));
+        return createCommentInternal(request, author, new PostInfoProvider() {
+            @Override public void setPostIdOnComment(Comment c, Comment p) { c.setDistrictNewsId(p != null ? p.getDistrictNewsId() : newsId); }
+            @Override public User getPostAuthor() { return news.getAuthor(); }
+            @Override public String getPostTitle() { return news.getTitle(); }
+        });
     }
 
     public CommentDto createEventComment(Long eventId, CreateCommentRequest request, User author) {
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new EntityNotFoundException("Event not found with ID: " + eventId));
-
-        Comment comment = new Comment();
-        comment.setContent(request.getContent());
-        comment.setAuthor(author);
-        comment.setEventId(event.getId());
-
-        Comment savedComment = commentRepository.save(comment);
-        log.info("Created event comment with ID: {} by user: {}", savedComment.getId(), author.getEmail());
-
-        // Notify the event author if not the same user
-        if (!event.getAuthor().getId().equals(author.getId())) {
-            notificationService.notifyUser(event.getAuthor().getId(),
-                    author.getFirstName() +" "+author.getLastName() + " commented on your event '" + event.getTitle() + "'");
-        }
-
-        return modelMapper.map(savedComment, CommentDto.class);
+        Event event = eventRepository.findById(eventId).orElseThrow(() -> new EntityNotFoundException("Event not found"));
+        return createCommentInternal(request, author, new PostInfoProvider() {
+            @Override public void setPostIdOnComment(Comment c, Comment p) { c.setEventId(p != null ? p.getEventId() : eventId); }
+            @Override public User getPostAuthor() { return event.getAuthor(); }
+            @Override public String getPostTitle() { return event.getTitle(); }
+        });
     }
 
     public CommentDto createJobComment(Long jobId, CreateCommentRequest request, User author) {
-        Job job = jobRepository.findById(jobId)
-                .orElseThrow(() -> new EntityNotFoundException("Job not found with ID: " + jobId));
-
-        Comment comment = new Comment();
-        comment.setContent(request.getContent());
-        comment.setAuthor(author);
-        comment.setJobId(job.getId());
-
-        Comment savedComment = commentRepository.save(comment);
-        log.info("Created job comment with ID: {} by user: {}", savedComment.getId(), author.getEmail());
-
-        // Notify the job author if not the same user
-        if (!job.getAuthor().getId().equals(author.getId())) {
-            notificationService.notifyUser(job.getAuthor().getId(),
-                    author.getFirstName() +" "+author.getLastName() + " commented on your job posting '" + job.getTitle() + "'");
-        }
-
-        return modelMapper.map(savedComment, CommentDto.class);
+        Job job = jobRepository.findById(jobId).orElseThrow(() -> new EntityNotFoundException("Job not found"));
+        return createCommentInternal(request, author, new PostInfoProvider() {
+            @Override public void setPostIdOnComment(Comment c, Comment p) { c.setJobId(p != null ? p.getJobId() : jobId); }
+            @Override public User getPostAuthor() { return job.getAuthor(); }
+            @Override public String getPostTitle() { return job.getTitle(); }
+        });
     }
 
     public CommentDto createCommunityPostComment(Long postId, CreateCommentRequest request, User author) {
-        CommunityPost communityPost = communityPostRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("Community post not found with ID: " + postId));
-
-        Comment comment = new Comment();
-        comment.setContent(request.getContent());
-        comment.setAuthor(author);
-        comment.setCommunityPostId(communityPost.getId());
-
-        Comment savedComment = commentRepository.save(comment);
-        log.info("Created community post comment with ID: {} by user: {}", savedComment.getId(), author.getEmail());
-
-        // Notify community post author if not the same user
-        if (!communityPost.getAuthor().getId().equals(author.getId())) {
-            notificationService.notifyUser(communityPost.getAuthor().getId(),
-                    author.getFirstName() +" "+author.getLastName() + " commented on your community post '" + communityPost.getTitle() + "'");
-        }
-
-        return modelMapper.map(savedComment, CommentDto.class);
+        CommunityPost post = communityPostRepository.findById(postId).orElseThrow(() -> new EntityNotFoundException("Community post not found"));
+        return createCommentInternal(request, author, new PostInfoProvider() {
+            @Override public void setPostIdOnComment(Comment c, Comment p) { c.setCommunityPostId(p != null ? p.getCommunityPostId() : postId); }
+            @Override public User getPostAuthor() { return post.getAuthor(); }
+            @Override public String getPostTitle() { return post.getTitle(); }
+        });
     }
+
 
     public List<CommentDto> getDistrictNewsComments(Long newsId) {
-        List<Comment> comments = commentRepository.findByDistrictNewsIdOrderByCreatedAtDesc(newsId);
-        return comments.stream()
-                .map(comment -> modelMapper.map(comment, CommentDto.class))
-                .collect(Collectors.toList());
+        return buildCommentTree(commentRepository.findByDistrictNewsIdOrderByCreatedAtAsc(newsId));
     }
-
     public List<CommentDto> getEventComments(Long eventId) {
-        List<Comment> comments = commentRepository.findByEventIdOrderByCreatedAtDesc(eventId);
-        return comments.stream()
-                .map(comment -> modelMapper.map(comment, CommentDto.class))
-                .collect(Collectors.toList());
+        return buildCommentTree(commentRepository.findByEventIdOrderByCreatedAtAsc(eventId));
     }
-
     public List<CommentDto> getJobComments(Long jobId) {
-        List<Comment> comments = commentRepository.findByJobIdOrderByCreatedAtDesc(jobId);
-        return comments.stream()
-                .map(comment -> modelMapper.map(comment, CommentDto.class))
-                .collect(Collectors.toList());
+        return buildCommentTree(commentRepository.findByJobIdOrderByCreatedAtAsc(jobId));
     }
-
     public List<CommentDto> getCommunityPostComments(Long postId) {
-        List<Comment> comments = commentRepository.findByCommunityPostIdOrderByCreatedAtDesc(postId);
-        return comments.stream()
-                .map(comment -> modelMapper.map(comment, CommentDto.class))
-                .collect(Collectors.toList());
+        return buildCommentTree(commentRepository.findByCommunityPostIdOrderByCreatedAtAsc(postId));
     }
-
     public List<CommentDto> getCommentsForPost(String postType, Long postId) {
         switch (postType.toLowerCase()) {
-            case "district-news":
-                return getDistrictNewsComments(postId);
-            case "event":
-                return getEventComments(postId);
-            case "job":
-                return getJobComments(postId);
-            case "community":
-                return getCommunityPostComments(postId);
-            default:
-                throw new IllegalArgumentException("Invalid post type: " + postType);
+            case "district-news": return getDistrictNewsComments(postId);
+            case "event": return getEventComments(postId);
+            case "job": return getJobComments(postId);
+            case "community": return getCommunityPostComments(postId);
+            case "property": return buildCommentTree(commentRepository.findByPropertyIdOrderByCreatedAtAsc(postId));
+            default: throw new IllegalArgumentException("Invalid post type: " + postType);
         }
     }
-
-
 
     public CommentDto updateComment(Long commentId, CreateCommentRequest request, User currentUser) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new EntityNotFoundException("Comment not found with ID: " + commentId));
-
-        // Check if the current user is the comment author
         if (!comment.getAuthor().getId().equals(currentUser.getId())) {
             throw new SecurityException("You are not authorized to update this comment");
         }
-
         comment.setContent(request.getContent());
         Comment updatedComment = commentRepository.save(comment);
-
         log.info("Updated comment with ID: {} by user: {}", commentId, currentUser.getEmail());
-
-        return modelMapper.map(updatedComment, CommentDto.class);
+        return mapCommentToDto(updatedComment);
     }
 
     public void deleteComment(Long commentId, User currentUser) {
@@ -181,32 +197,21 @@ public class CommentService {
         boolean isCommentOwner = comment.getAuthor().getId().equals(currentUser.getId());
         boolean isPostOwner = false;
 
-        // Check if current user is the post owner based on post type
         if (comment.getDistrictNewsId() != null) {
-            DistrictNews news = districtNewsRepository.findById(comment.getDistrictNewsId())
-                    .orElseThrow(() -> new EntityNotFoundException("District news not found"));
-            isPostOwner = news.getAuthor().getId().equals(currentUser.getId());
+            isPostOwner = districtNewsRepository.findById(comment.getDistrictNewsId()).map(p -> p.getAuthor().getId().equals(currentUser.getId())).orElse(false);
         } else if (comment.getEventId() != null) {
-            Event event = eventRepository.findById(comment.getEventId())
-                    .orElseThrow(() -> new EntityNotFoundException("Event not found"));
-            isPostOwner = event.getAuthor().getId().equals(currentUser.getId());
+            isPostOwner = eventRepository.findById(comment.getEventId()).map(p -> p.getAuthor().getId().equals(currentUser.getId())).orElse(false);
         } else if (comment.getJobId() != null) {
-            Job job = jobRepository.findById(comment.getJobId())
-                    .orElseThrow(() -> new EntityNotFoundException("Job not found"));
-            isPostOwner = job.getAuthor().getId().equals(currentUser.getId());
+            isPostOwner = jobRepository.findById(comment.getJobId()).map(p -> p.getAuthor().getId().equals(currentUser.getId())).orElse(false);
         } else if (comment.getCommunityPostId() != null) {
-            CommunityPost post = communityPostRepository.findById(comment.getCommunityPostId())
-                    .orElseThrow(() -> new EntityNotFoundException("Community post not found"));
-            isPostOwner = post.getAuthor().getId().equals(currentUser.getId());
+            isPostOwner = communityPostRepository.findById(comment.getCommunityPostId()).map(p -> p.getAuthor().getId().equals(currentUser.getId())).orElse(false);
+        } else if (comment.getPropertyId() != null) {
+            // isPostOwner = propertyRepository.findById(comment.getPropertyId()).map(p -> p.getAuthor().getId().equals(currentUser.getId())).orElse(false);
         }
-
-        // Allow deletion if user is either comment owner or post owner
         if (!isCommentOwner && !isPostOwner) {
             throw new SecurityException("You are not authorized to delete this comment");
         }
-
         commentRepository.delete(comment);
         log.info("Deleted comment with ID: {} by user: {}", commentId, currentUser.getEmail());
     }
-
 }

@@ -1,3 +1,5 @@
+// In: com.soumyajit.jharkhand_project.dto.CreateCommentRequest.java
+
 package com.soumyajit.jharkhand_project.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -17,4 +19,5 @@ public class CreateCommentRequest {
     @NotBlank(message = "Comment content is required")
     @Size(max = 500, message = "Comment must not exceed 500 characters")
     private String content;
+    private Long parentId;
 }

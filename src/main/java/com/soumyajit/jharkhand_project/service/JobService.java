@@ -91,7 +91,7 @@ public class JobService {
 
         JobDto dto = modelMapper.map(job, JobDto.class);
 
-        List<Comment> comments = commentRepository.findByJobIdOrderByCreatedAtDesc(id);
+        List<Comment> comments = commentRepository.findByJobIdOrderByCreatedAtAsc(id);
         List<CommentDto> commentDtos = comments.stream()
                 .map(comment -> modelMapper.map(comment, CommentDto.class))
                 .collect(Collectors.toList());

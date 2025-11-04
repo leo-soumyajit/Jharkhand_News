@@ -151,7 +151,7 @@ public class PropertyService {
         PropertyDto dto = modelMapper.map(property, PropertyDto.class);
 
 
-        List<Comment> comments = commentRepository.findByPropertyIdOrderByCreatedAtDesc(id);
+        List<Comment> comments = commentRepository.findByPropertyIdOrderByCreatedAtAsc(id);
         List<CommentDto> commentDtos = comments.stream()
                 .map(comment -> modelMapper.map(comment, CommentDto.class))
                 .collect(Collectors.toList());

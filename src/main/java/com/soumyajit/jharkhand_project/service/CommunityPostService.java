@@ -90,7 +90,7 @@ public class CommunityPostService {
 
         CommunityPostDto dto = modelMapper.map(post, CommunityPostDto.class);
 
-        List<Comment> comments = commentRepository.findByCommunityPostIdOrderByCreatedAtDesc(id);
+        List<Comment> comments = commentRepository.findByCommunityPostIdOrderByCreatedAtAsc(id);
         List<CommentDto> commentDtos = comments.stream()
                 .map(comment -> modelMapper.map(comment, CommentDto.class))
                 .collect(Collectors.toList());
