@@ -15,7 +15,7 @@ spring:
               - email
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}?currentSchema=public
+    url: jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}?currentSchema=public&timeZone=Asia/Kolkata
     username: postgres
     password: 7908288829
     driver-class-name: org.postgresql.Driver
@@ -76,11 +76,11 @@ server:
 app:
   jwt:
     secret: ${JWT_SEC}
-    expiration: 15552000000 # 6 months in ms (assuming 30 days per month)
-    refresh-expiration: 31536000000 # 1 year in ms (assuming 365 days per year)
+    expiration: 15552000000
+    refresh-expiration: 31536000000
 
   otp:
-    expiration: 300000 # 5 minutes in ms
+    expiration: 300000
     length: 6
 
   email:

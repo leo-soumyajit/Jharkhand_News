@@ -15,7 +15,7 @@ spring:
               - email
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/jharkhand?currentSchema=public
+    url: jdbc:postgresql://localhost:5432/jharkhand?currentSchema=public&timeZone=Asia/Kolkata
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver

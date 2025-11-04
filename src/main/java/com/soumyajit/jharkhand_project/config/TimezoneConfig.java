@@ -9,6 +9,9 @@ public class TimezoneConfig {
 
     @PostConstruct
     public void init() {
+        System.setProperty("user.timezone", "Asia/Kolkata");
         TimeZone.setDefault(TimeZone.getTimeZone("Asia/Kolkata"));
+        System.out.println("✅ JVM Timezone successfully set to: " + TimeZone.getDefault().getID());
+        System.out.println("✅ System property user.timezone: " + System.getProperty("user.timezone"));
     }
 }
