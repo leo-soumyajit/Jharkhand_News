@@ -5,6 +5,7 @@ import com.soumyajit.jharkhand_project.Response.ApiResponse;
 import com.soumyajit.jharkhand_project.dto.CommentDto;
 import com.soumyajit.jharkhand_project.dto.CreateCommentRequest;
 import com.soumyajit.jharkhand_project.entity.User;
+import com.soumyajit.jharkhand_project.exception.EntityNotFoundException;
 import com.soumyajit.jharkhand_project.service.CommentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -158,6 +159,53 @@ public class CommentController {
                     .body(ApiResponse.error("Failed to retrieve comments"));
         }
     }
+
+    @PutMapping("/{commentId}")
+    public ResponseEntity<ApiResponse<CommentDto>> updateComment(
+            @PathVariable Long commentId,
+            @Valid @RequestBody CreateCommentRequest request,
+            Authentication authentication) {
+        try {
+            User user = (User) authentication.getPrincipal();
+            CommentDto updatedComment = commentService.updateComment(commentId, request, user);
+            return ResponseEntity.ok(ApiResponse.success("Comment updated successfully", updatedComment));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error updating comment", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Failed to update comment"));
+        }
+    }
+
+    @DeleteMapping("/{commentId}")
+    public ResponseEntity<ApiResponse<Void>> deleteComment(
+            @PathVariable Long commentId,
+            Authentication authentication) {
+        try {
+            User user = (User) authentication.getPrincipal();
+            commentService.deleteComment(commentId, user);
+            return ResponseEntity.ok(ApiResponse.success("Comment deleted successfully", null));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error deleting comment", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error("Failed to delete comment"));
+        }
+    }
+
+
+
+
 }
 
 

@@ -42,10 +42,10 @@ spring:
 
   data:
     redis:
-      host: redis-11259.c10.us-east-1-4.ec2.redns.redis-cloud.com
-      port: 11259
+      host: redis-17738.crce179.ap-south-1-1.ec2.redns.redis-cloud.com
+      port: 17738
       username: default
-      password: SA2PnOGiBylYHcetMrDkg3cHauYxs13R
+      password: FkxxCWO3fSrI80LagaGUMEpO8aHOQV6y
       timeout: 60000ms
       database: 0
 

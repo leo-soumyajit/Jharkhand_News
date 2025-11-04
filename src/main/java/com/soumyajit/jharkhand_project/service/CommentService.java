@@ -154,4 +154,59 @@ public class CommentService {
                 throw new IllegalArgumentException("Invalid post type: " + postType);
         }
     }
+
+
+
+    public CommentDto updateComment(Long commentId, CreateCommentRequest request, User currentUser) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new EntityNotFoundException("Comment not found with ID: " + commentId));
+
+        // Check if the current user is the comment author
+        if (!comment.getAuthor().getId().equals(currentUser.getId())) {
+            throw new SecurityException("You are not authorized to update this comment");
+        }
+
+        comment.setContent(request.getContent());
+        Comment updatedComment = commentRepository.save(comment);
+
+        log.info("Updated comment with ID: {} by user: {}", commentId, currentUser.getEmail());
+
+        return modelMapper.map(updatedComment, CommentDto.class);
+    }
+
+    public void deleteComment(Long commentId, User currentUser) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new EntityNotFoundException("Comment not found with ID: " + commentId));
+
+        boolean isCommentOwner = comment.getAuthor().getId().equals(currentUser.getId());
+        boolean isPostOwner = false;
+
+        // Check if current user is the post owner based on post type
+        if (comment.getDistrictNewsId() != null) {
+            DistrictNews news = districtNewsRepository.findById(comment.getDistrictNewsId())
+                    .orElseThrow(() -> new EntityNotFoundException("District news not found"));
+            isPostOwner = news.getAuthor().getId().equals(currentUser.getId());
+        } else if (comment.getEventId() != null) {
+            Event event = eventRepository.findById(comment.getEventId())
+                    .orElseThrow(() -> new EntityNotFoundException("Event not found"));
+            isPostOwner = event.getAuthor().getId().equals(currentUser.getId());
+        } else if (comment.getJobId() != null) {
+            Job job = jobRepository.findById(comment.getJobId())
+                    .orElseThrow(() -> new EntityNotFoundException("Job not found"));
+            isPostOwner = job.getAuthor().getId().equals(currentUser.getId());
+        } else if (comment.getCommunityPostId() != null) {
+            CommunityPost post = communityPostRepository.findById(comment.getCommunityPostId())
+                    .orElseThrow(() -> new EntityNotFoundException("Community post not found"));
+            isPostOwner = post.getAuthor().getId().equals(currentUser.getId());
+        }
+
+        // Allow deletion if user is either comment owner or post owner
+        if (!isCommentOwner && !isPostOwner) {
+            throw new SecurityException("You are not authorized to delete this comment");
+        }
+
+        commentRepository.delete(comment);
+        log.info("Deleted comment with ID: {} by user: {}", commentId, currentUser.getEmail());
+    }
+
 }
