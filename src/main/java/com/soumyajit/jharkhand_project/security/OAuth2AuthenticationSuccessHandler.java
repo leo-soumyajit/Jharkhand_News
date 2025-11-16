@@ -24,7 +24,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final JwtUtils jwtUtils;
     private final UserRepository userRepository;
 
-    @Value("${app.oauth2.redirect-uri:https://jharkhand-bihar-updates.vercel.app/auth/google/callback}")
+    @Value("${app.oauth2.redirect-uri:https://jharkhandbiharupdates.com/auth/google/callback}")
     private String redirectUri;
 
     @Override
