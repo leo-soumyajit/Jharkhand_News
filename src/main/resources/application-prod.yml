@@ -16,8 +16,8 @@ spring:
 
   datasource:
     url: jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}?currentSchema=public&timeZone=Asia/Kolkata
-    username: postgres
-    password: 7908288829
+    username: jharkhanddb_user
+    password: nbrqIvTapnCHI1ffOXRbYAhon4uRuWbv
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
@@ -43,7 +43,7 @@ spring:
   data:
     redis:
       host: ${REDIS_HOST}
-      port: 11259
+      port: 14833
       username: default
       password: ${REDIS_PASS}
       timeout: 60000ms
@@ -95,3 +95,12 @@ logging:
   level:
     com.jharkhand.news: DEBUG
     org.springframework.security: DEBUG
+
+
+onesignal:
+  app:
+    id: 8f6aeaec-1885-4245-b351-0885c4cb7312
+  rest:
+    api:
+      key: os_v2_app_r5vov3ayqvbelm2rbcc4js3tcildv6g56vhuhbnvifdbdzpcff64j2n4e4asq5advnpuvwloauftpysjom2ncwvdha3nykewgoacu4a
+

@@ -116,5 +116,12 @@ public class UserService {
                 user.getEmail(), content.getTotalElements());
         return content;
     }
+
+    @Transactional
+    public void updateOnesignalPlayerId(User user, String playerId) {
+        user.setOnesignalPlayerId(playerId);
+        userRepository.save(user);
+    }
+
 }
 

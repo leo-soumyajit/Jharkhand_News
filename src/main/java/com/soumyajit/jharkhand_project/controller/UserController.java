@@ -15,6 +15,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/user")
 @RequiredArgsConstructor
@@ -60,4 +62,23 @@ public class UserController {
         UserContentDto content = userService.getUserContent(user);
         return ResponseEntity.ok(ApiResponse.success("User content retrieved successfully", content));
     }
+
+    @PutMapping("/onesignal-id")
+    public ResponseEntity<ApiResponse<Void>> updateOnesignalPlayerId(
+            @RequestBody Map<String, String> request,
+            @AuthenticationPrincipal User user) {
+        System.out.println("🔥 updateOnesignalPlayerId HIT for user: " + user.getEmail());
+
+        String playerId = request.get("playerId");
+
+        if (playerId == null || playerId.isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Player ID is required"));
+        }
+
+        userService.updateOnesignalPlayerId(user, playerId);
+
+        return ResponseEntity.ok(ApiResponse.success("OneSignal Player ID updated", null));
+    }
+
 }

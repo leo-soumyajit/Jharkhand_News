@@ -43,6 +43,10 @@ public class User implements UserDetails, Serializable {
     @Column
     private String profileImageUrl;
 
+    @Column(name = "onesignal_player_id")
+    private String onesignalPlayerId;
+
+
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
     @Builder.Default

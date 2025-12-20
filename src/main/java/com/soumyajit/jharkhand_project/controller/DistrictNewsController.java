@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -148,6 +149,78 @@ public class DistrictNewsController {
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error("Failed to delete district news"));
         }
+    }
+
+    @GetMapping(value = "/localnews/{id}", produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> getSharePage(@PathVariable Long id) {
+        try {
+            // Use the same method as your existing controller
+            DistrictNewsDto news = districtNewsService.getNewsById(id);
+
+            // Clean HTML tags from title and content
+            String title = news.getTitle().replaceAll("<[^>]*>", "").trim();
+            String description = news.getContent().replaceAll("<[^>]*>", "").trim();
+            if (description.length() > 200) {
+                description = description.substring(0, 200) + "...";
+            }
+
+            // Get first image or use default
+            String image = (news.getImageUrls() != null && !news.getImageUrls().isEmpty())
+                    ? news.getImageUrls().get(0)
+                    : "https://jharkhandbiharupdates.com/default-image.jpg";
+
+            String newsUrl = "https://jharkhandbiharupdates.com/localnews/details/" + id;
+
+            // Build HTML with meta tags
+            String html = buildShareHtml(title, description, image, newsUrl);
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_HTML)
+                    .body(html);
+
+        } catch (Exception e) {
+            log.error("Error generating share page for news ID: {}", id, e);
+            return ResponseEntity.internalServerError()
+                    .body("<html><body><h2>Error loading news</h2></body></html>");
+        }
+    }
+
+    private String buildShareHtml(String title, String description, String image, String newsUrl) {
+        // Escape quotes for HTML attributes
+        String escapedTitle = title.replace("\"", "&quot;").replace("'", "&#39;");
+        String escapedDescription = description.replace("\"", "&quot;").replace("'", "&#39;");
+
+        return "<!DOCTYPE html>" +
+                "<html lang='en'>" +
+                "<head>" +
+                "<meta charset='UTF-8'>" +
+                "<meta name='viewport' content='width=device-width, initial-scale=1.0'>" +
+                "<title>" + escapedTitle + "</title>" +
+
+                "<!-- Open Graph Meta Tags -->" +
+                "<meta property='og:type' content='article'>" +
+                "<meta property='og:title' content='" + escapedTitle + "'>" +
+                "<meta property='og:description' content='" + escapedDescription + "'>" +
+                "<meta property='og:image' content='" + image + "'>" +
+                "<meta property='og:url' content='" + newsUrl + "'>" +
+                "<meta property='og:site_name' content='Jharkhand Bihar Updates'>" +
+
+                "<!-- Twitter Card Meta Tags -->" +
+                "<meta name='twitter:card' content='summary_large_image'>" +
+                "<meta name='twitter:title' content='" + escapedTitle + "'>" +
+                "<meta name='twitter:description' content='" + escapedDescription + "'>" +
+                "<meta name='twitter:image' content='" + image + "'>" +
+
+                "<!-- Auto redirect for real users -->" +
+                "<script>" +
+                "setTimeout(function() { window.location.href='" + newsUrl + "'; }, 500);" +
+                "</script>" +
+                "</head>" +
+                "<body style='font-family: Arial; text-align: center; padding: 50px;'>" +
+                "<h2>Loading news...</h2>" +
+                "<p>If you are not redirected, <a href='" + newsUrl + "'>click here</a></p>" +
+                "</body>" +
+                "</html>";
     }
 
 }

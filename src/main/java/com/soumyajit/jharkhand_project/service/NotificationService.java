@@ -9,8 +9,10 @@ import com.soumyajit.jharkhand_project.exception.AccessDeniedException;
 import com.soumyajit.jharkhand_project.exception.EntityNotFoundException;
 import com.soumyajit.jharkhand_project.repository.NotificationRepository;
 import com.soumyajit.jharkhand_project.repository.SubscriberRepository;
+import com.soumyajit.jharkhand_project.repository.UserRepository;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -25,15 +27,19 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final SubscriberRepository subscriberRepository;
     private final JavaMailSender mailSender;
+    private final OneSignalService oneSignalService; // ✅ ADD THIS
+    private final UserRepository userRepository;
 
     // Create and save a notification for a user
     @Async
     public void notifyUser(Long userId, String message) {
+        // 1. Save to database
         Notification notification = new Notification();
         User user = new User();
         user.setId(userId);
@@ -41,7 +47,22 @@ public class NotificationService {
         notification.setMessage(message);
         notification.setCreatedAt(LocalDateTime.now());
         notificationRepository.save(notification);
+
+        // 2. Send push notification via OneSignal
+        try {
+            User fullUser = userRepository.findById(userId).orElse(null);
+            if (fullUser != null && fullUser.getOnesignalPlayerId() != null) {
+                oneSignalService.sendNotification(
+                        fullUser.getOnesignalPlayerId(),
+                        "New Notification",
+                        message
+                );
+            }
+        } catch (Exception e) {
+            log.error("Error sending OneSignal push notification", e);
+        }
     }
+
 
     // Get recent notifications for a user in the past 'days'
     public List<NotificationDto> getRecentNotifications(Long userId, int days) {
