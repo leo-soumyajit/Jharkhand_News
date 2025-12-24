@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -27,7 +26,7 @@ import java.util.stream.Collectors;
 public class CommentService {
 
     private final CommentRepository commentRepository;
-    private final DistrictNewsRepository districtNewsRepository;
+    private final StateNewsRepository stateNewsRepository;
     private final EventRepository eventRepository;
     private final JobRepository jobRepository;
     private final CommunityPostRepository communityPostRepository;
@@ -118,10 +117,10 @@ public class CommentService {
         return mapCommentToDto(savedComment);
     }
 
-    public CommentDto createDistrictNewsComment(Long newsId, CreateCommentRequest request, User author) {
-        DistrictNews news = districtNewsRepository.findById(newsId).orElseThrow(() -> new EntityNotFoundException("District news not found"));
+    public CommentDto createStateNewsComment(Long newsId, CreateCommentRequest request, User author) {
+        StateNews news = stateNewsRepository.findById(newsId).orElseThrow(() -> new EntityNotFoundException("State news not found"));
         return createCommentInternal(request, author, new PostInfoProvider() {
-            @Override public void setPostIdOnComment(Comment c, Comment p) { c.setDistrictNewsId(p != null ? p.getDistrictNewsId() : newsId); }
+            @Override public void setPostIdOnComment(Comment c, Comment p) { c.setStateNewsId(p != null ? p.getStateNewsId() : newsId); }
             @Override public User getPostAuthor() { return news.getAuthor(); }
             @Override public String getPostTitle() { return news.getTitle(); }
         });
@@ -155,8 +154,8 @@ public class CommentService {
     }
 
 
-    public List<CommentDto> getDistrictNewsComments(Long newsId) {
-        return buildCommentTree(commentRepository.findByDistrictNewsIdOrderByCreatedAtAsc(newsId));
+    public List<CommentDto> getStateNewsComments(Long newsId) {
+        return buildCommentTree(commentRepository.findByStateNewsIdOrderByCreatedAtAsc(newsId));
     }
     public List<CommentDto> getEventComments(Long eventId) {
         return buildCommentTree(commentRepository.findByEventIdOrderByCreatedAtAsc(eventId));
@@ -169,7 +168,7 @@ public class CommentService {
     }
     public List<CommentDto> getCommentsForPost(String postType, Long postId) {
         switch (postType.toLowerCase()) {
-            case "district-news": return getDistrictNewsComments(postId);
+            case "state-news": return getStateNewsComments(postId);
             case "event": return getEventComments(postId);
             case "job": return getJobComments(postId);
             case "community": return getCommunityPostComments(postId);
@@ -197,8 +196,8 @@ public class CommentService {
         boolean isCommentOwner = comment.getAuthor().getId().equals(currentUser.getId());
         boolean isPostOwner = false;
 
-        if (comment.getDistrictNewsId() != null) {
-            isPostOwner = districtNewsRepository.findById(comment.getDistrictNewsId()).map(p -> p.getAuthor().getId().equals(currentUser.getId())).orElse(false);
+        if (comment.getStateNewsId() != null) {
+            isPostOwner = stateNewsRepository.findById(comment.getStateNewsId()).map(p -> p.getAuthor().getId().equals(currentUser.getId())).orElse(false);
         } else if (comment.getEventId() != null) {
             isPostOwner = eventRepository.findById(comment.getEventId()).map(p -> p.getAuthor().getId().equals(currentUser.getId())).orElse(false);
         } else if (comment.getJobId() != null) {

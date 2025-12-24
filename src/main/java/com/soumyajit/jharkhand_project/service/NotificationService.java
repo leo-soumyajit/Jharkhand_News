@@ -1,7 +1,7 @@
 package com.soumyajit.jharkhand_project.service;
 
 import com.soumyajit.jharkhand_project.dto.NotificationDto;
-import com.soumyajit.jharkhand_project.entity.DistrictNews;
+import com.soumyajit.jharkhand_project.entity.StateNews;
 import com.soumyajit.jharkhand_project.entity.Notification;
 import com.soumyajit.jharkhand_project.entity.Subscriber;
 import com.soumyajit.jharkhand_project.entity.User;
@@ -13,7 +13,6 @@ import com.soumyajit.jharkhand_project.repository.UserRepository;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -92,7 +91,7 @@ public class NotificationService {
     }
 
     @Async("taskExecutor")
-    public void sendFullNewsEmail(DistrictNews news) {
+    public void sendFullNewsEmail(StateNews news) {
         List<Subscriber> subscribers = subscriberRepository.findBySubscribedTrue();
         String subject = "New post: " + news.getTitle();
         String body = buildStyledNewsEmailBody(news); // Your existing styling method
@@ -112,7 +111,7 @@ public class NotificationService {
         }
     }
 
-    private String buildStyledNewsEmailBody(DistrictNews news) {
+    private String buildStyledNewsEmailBody(StateNews news) {
         StringBuilder imagesHtml = new StringBuilder();
         if (news.getImageUrls() != null && !news.getImageUrls().isEmpty()) {
             imagesHtml.append("<div style='display:flex; overflow-x:auto; gap:10px; margin:20px 0;'>");
@@ -154,7 +153,7 @@ public class NotificationService {
 
         return "<html><body style='font-family: Georgia, serif; color:#222; margin:20px; line-height:1.6;'>" +
                 "<h1 style='color:#003366; font-weight:bold; margin-bottom:0.2em;'>" + news.getTitle() + "</h1>" +
-                "<p style='font-style: italic; color:#666; margin-top:0; font-size:14px;'>District: " + news.getDistrict().getName() +
+                "<p style='font-style: italic; color:#666; margin-top:0; font-size:14px;'>State: " + news.getState().getName() +
                 " | Author: " + authorName + "</p>" +
                 "<hr style='border:none; border-top:2px solid #004080; margin:15px 0;' />" +
                 imagesHtml.toString() +

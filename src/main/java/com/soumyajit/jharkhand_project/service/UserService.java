@@ -1,6 +1,5 @@
 package com.soumyajit.jharkhand_project.service;
 
-
 import com.soumyajit.jharkhand_project.dto.*;
 import com.soumyajit.jharkhand_project.entity.User;
 import com.soumyajit.jharkhand_project.repository.*;
@@ -8,7 +7,6 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,7 +21,7 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final DistrictNewsRepository districtNewsRepository;
+    private final StateNewsRepository stateNewsRepository;
     private final EventRepository eventRepository;
     private final JobRepository jobRepository;
     private final CommunityPostRepository communityPostRepository;
@@ -66,7 +64,7 @@ public class UserService {
     }
 
     public UserStatsDto getUserStats(User user) {
-        long districtNewsCount = districtNewsRepository.countByAuthor(user);
+        long stateNewsCount = stateNewsRepository.countByAuthor(user);  // ✅ FIXED variable name
         long eventsCount = eventRepository.countByAuthor(user);
         long jobsCount = jobRepository.countByAuthor(user);
         long communityPostsCount = communityPostRepository.countByAuthor(user);
@@ -74,7 +72,7 @@ public class UserService {
 //        long notificationsCount = notificationRepository.countByUser(user);
 
         UserStatsDto stats = UserStatsDto.builder()
-                .totalDistrictNews(districtNewsCount)
+                .totalStateNews(stateNewsCount)  // ✅ FIXED method name
                 .totalEvents(eventsCount)
                 .totalJobs(jobsCount)
                 .totalCommunityPosts(communityPostsCount)
@@ -90,14 +88,14 @@ public class UserService {
 
     public UserContentDto getUserContent(User user) {
         // Get all user's content sorted by creation date (newest first)
-        var districtNewsList = districtNewsRepository.findByAuthorOrderByCreatedAtDesc(user);
+        var stateNewsList = stateNewsRepository.findByAuthorOrderByCreatedAtDesc(user);  // ✅ FIXED variable name
         var eventsList = eventRepository.findByAuthorOrderByCreatedAtDesc(user);
         var jobsList = jobRepository.findByAuthorOrderByCreatedAtDesc(user);
         var communityPostsList = communityPostRepository.findByAuthorOrderByCreatedAtDesc(user);
 
         UserContentDto content = UserContentDto.builder()
-                .districtNews(districtNewsList.stream()
-                        .map(news -> modelMapper.map(news, DistrictNewsDto.class))
+                .stateNews(stateNewsList.stream()  // ✅ FIXED variable reference
+                        .map(news -> modelMapper.map(news, StateNewsDto.class))
                         .collect(Collectors.toList()))
                 .events(eventsList.stream()
                         .map(event -> modelMapper.map(event, EventDto.class))
@@ -108,7 +106,7 @@ public class UserService {
                 .communityPosts(communityPostsList.stream()
                         .map(post -> modelMapper.map(post, CommunityPostDto.class))
                         .collect(Collectors.toList()))
-                .totalElements(districtNewsList.size() + eventsList.size() +
+                .totalElements(stateNewsList.size() + eventsList.size() +  // ✅ FIXED variable reference
                         jobsList.size() + communityPostsList.size())
                 .build();
 
@@ -122,6 +120,4 @@ public class UserService {
         user.setOnesignalPlayerId(playerId);
         userRepository.save(user);
     }
-
 }
-

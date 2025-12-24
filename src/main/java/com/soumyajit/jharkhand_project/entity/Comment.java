@@ -40,7 +40,7 @@ public class Comment {
     // ----------------------------------------------------
 
     // Foreign keys to root posts
-    private Long districtNewsId;
+    private Long stateNewsId;
     private Long eventId;
     private Long jobId;
     private Long communityPostId;

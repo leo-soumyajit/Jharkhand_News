@@ -13,7 +13,7 @@ import java.util.List;
 public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     // MODIFIED: Changed to Asc for easier tree building
-    List<Comment> findByDistrictNewsIdOrderByCreatedAtAsc(Long districtNewsId);
+    List<Comment> findByStateNewsIdOrderByCreatedAtAsc(Long stateNewsId);
     List<Comment> findByEventIdOrderByCreatedAtAsc(Long eventId);
     List<Comment> findByJobIdOrderByCreatedAtAsc(Long jobId);
     List<Comment> findByCommunityPostIdOrderByCreatedAtAsc(Long communityPostId);

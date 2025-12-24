@@ -13,7 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserContentDto {
-    private List<DistrictNewsDto> districtNews;
+    private List<StateNewsDto> stateNews;
     private List<EventDto> events;
     private List<JobDto> jobs;
     private List<CommunityPostDto> communityPosts;

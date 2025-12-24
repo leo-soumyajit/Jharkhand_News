@@ -15,9 +15,9 @@ spring:
               - email
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}?currentSchema=public&timeZone=Asia/Kolkata
-    username: jharkhanddb_user
-    password: nbrqIvTapnCHI1ffOXRbYAhon4uRuWbv
+    url: jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}?currentSchema=public&TimeZone=Asia/Kolkata
+    username: gen_user
+    password: =+5E.S_l70xpHd
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10

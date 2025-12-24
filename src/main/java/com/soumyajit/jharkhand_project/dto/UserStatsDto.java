@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserStatsDto {
-    private long totalDistrictNews;
+    private long totalStateNews;
     private long totalEvents;
     private long totalJobs;
     private long totalCommunityPosts;
@@ -20,7 +20,7 @@ public class UserStatsDto {
 //    private long totalNotifications;
 
     public long getTotalContent() {
-        return totalDistrictNews + totalEvents + totalJobs + totalCommunityPosts;
+        return totalStateNews + totalEvents + totalJobs + totalCommunityPosts;
     }
 }
 

@@ -1,6 +1,5 @@
 package com.soumyajit.jharkhand_project.controller;
 
-
 import com.soumyajit.jharkhand_project.Response.ApiResponse;
 import com.soumyajit.jharkhand_project.dto.CommentDto;
 import com.soumyajit.jharkhand_project.dto.CreateCommentRequest;
@@ -26,18 +25,18 @@ public class CommentController {
 
     private final CommentService commentService;
 
-    @PostMapping("/district-news/{newsId}")
-    public ResponseEntity<ApiResponse<CommentDto>> createDistrictNewsComment(
-            @PathVariable Long newsId,
-            @Valid @RequestBody CreateCommentRequest request,
-            Authentication authentication) {
+    @PostMapping("/state-news/{newsId}")  // ✅ FIXED endpoint
+    public ResponseEntity<ApiResponse<CommentDto>> createStateNewsComment(  // ✅ FIXED method name
+                                                                            @PathVariable Long newsId,
+                                                                            @Valid @RequestBody CreateCommentRequest request,
+                                                                            Authentication authentication) {
         try {
             User user = (User) authentication.getPrincipal();
-            CommentDto comment = commentService.createDistrictNewsComment(newsId, request, user);
+            CommentDto comment = commentService.createStateNewsComment(newsId, request, user);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success("Comment created successfully", comment));
         } catch (Exception e) {
-            log.error("Error creating district news comment", e);
+            log.error("Error creating state news comment", e);  // ✅ FIXED log message
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error("Failed to create comment"));
         }
@@ -94,13 +93,13 @@ public class CommentController {
         }
     }
 
-    @GetMapping("/district-news/{newsId}")
-    public ResponseEntity<ApiResponse<List<CommentDto>>> getDistrictNewsComments(@PathVariable Long newsId) {
+    @GetMapping("/state-news/{newsId}")  // ✅ FIXED endpoint
+    public ResponseEntity<ApiResponse<List<CommentDto>>> getStateNewsComments(@PathVariable Long newsId) {  // ✅ FIXED method name
         try {
-            List<CommentDto> comments = commentService.getDistrictNewsComments(newsId);
+            List<CommentDto> comments = commentService.getStateNewsComments(newsId);
             return ResponseEntity.ok(ApiResponse.success("Comments retrieved successfully", comments));
         } catch (Exception e) {
-            log.error("Error retrieving district news comments", e);
+            log.error("Error retrieving state news comments", e);  // ✅ FIXED log message
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error("Failed to retrieve comments"));
         }
@@ -202,20 +201,4 @@ public class CommentController {
                     .body(ApiResponse.error("Failed to delete comment"));
         }
     }
-
-
-
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
