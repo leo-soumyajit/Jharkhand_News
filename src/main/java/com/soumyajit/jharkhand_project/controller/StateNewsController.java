@@ -19,6 +19,11 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.soumyajit.jharkhand_project.entity.NewsCategory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Pageable;
+
 
 import java.util.List;
 
@@ -35,16 +40,22 @@ public class StateNewsController {
 
     //give all
     @GetMapping("/{stateName}")
-    public ResponseEntity<ApiResponse<List<StateNewsDto>>> getNewsByState(@PathVariable String stateName) {
+    public ResponseEntity<ApiResponse<Page<StateNewsDto>>> getNewsByState(
+            @PathVariable String stateName,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
         try {
-            List<StateNewsDto> news = stateNewsService.getNewsByState(stateName);  // ✅ FIXED
-            return ResponseEntity.ok(ApiResponse.success("News retrieved successfully", news));
+            Page<StateNewsDto> newsPage = stateNewsService.getNewsByState(stateName, page, size);
+            return ResponseEntity.ok(ApiResponse.success("News retrieved successfully", newsPage));
         } catch (Exception e) {
             log.error("Error retrieving news for state: {}", stateName, e);
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error("Failed to retrieve news"));
         }
     }
+
+
 
     //give recent news
     @GetMapping("/{stateName}/recent")

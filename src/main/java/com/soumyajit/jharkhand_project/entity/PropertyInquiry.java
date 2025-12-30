@@ -37,11 +37,11 @@ public class PropertyInquiry {
     @Column(nullable = false)
     private String userEmail;
 
+    // ✅ FIXED: No default value, service will set it
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private InquiryStatus status = InquiryStatus.CLICKED;
+    private InquiryStatus status;
 
-    // ✅ Track action type
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ActionType actionType = ActionType.BUTTON_CLICK;
@@ -58,22 +58,25 @@ public class PropertyInquiry {
     private LocalDateTime updatedAt;
 
     private LocalDateTime contactedAt;
-
-    // ✅ Track when form was submitted (if submitted)
     private LocalDateTime submittedAt;
 
+    // ✅ FIXED: ALL statuses added
     public enum InquiryStatus {
-        CLICKED,           // User clicked button but didn't submit
-        NEW,               // User submitted with phone
-        CONTACTED,         // Owner called/emailed user
-        INTERESTED,        // User confirmed interest
+        BUTTON_CLICK,      // Matches DB constraint
+        FORM_SUBMITTED,    // Matches DB constraint
+        CLICKED,           // Frontend button click
+        NEW,               // Fresh form submission
+        CONTACTED,         // Admin contacted
+        INTERESTED,        // User interested
         NOT_INTERESTED,    // User not interested
-        CLOSED,         // Deal closed
-        SPAM              // Spam inquiry
+        CLOSED,            // Case closed
+        CONVERTED,         // Sale completed ✅ ADDED
+        SPAM               // Spam
     }
 
     public enum ActionType {
-        BUTTON_CLICK,      // Just clicked "Get In Touch"
-        FORM_SUBMITTED     // Submitted form with phone
+        BUTTON_CLICK,
+        FORM_SUBMITTED
     }
 }
+

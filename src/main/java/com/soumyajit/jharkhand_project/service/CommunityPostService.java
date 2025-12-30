@@ -19,6 +19,12 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Pageable;
+
+
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,13 +42,17 @@ public class CommunityPostService {
     private final ModelMapper modelMapper;
     private final NotificationService notificationService;
 
-    @Cacheable(value = "community-posts", key = "'approved'")
-    public List<CommunityPostDto> getApprovedPosts() {
-        List<CommunityPost> posts = communityPostRepository.findByStatusOrderByCreatedAtDesc(PostStatus.APPROVED);
-        return posts.stream()
-                .map(post -> modelMapper.map(post, CommunityPostDto.class))
-                .collect(Collectors.toList());
+    // REMOVE CACHE - Add pagination
+// @Cacheable(value = "community-posts", key = "'approved'") ← COMMENT OUT
+    public Page<CommunityPostDto> getApprovedPosts(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "createdAt");
+
+        Page<CommunityPost> postsPage = communityPostRepository
+                .findByStatusOrderByCreatedAtDesc(PostStatus.APPROVED, pageable);
+
+        return postsPage.map(post -> modelMapper.map(post, CommunityPostDto.class));
     }
+
 
     @CacheEvict(value = {"community-posts", "recent-community-posts"}, allEntries = true)
     public CommunityPostDto createPost(CreateCommunityPostRequest request, List<MultipartFile> images, User author) {

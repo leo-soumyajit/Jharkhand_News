@@ -17,6 +17,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -31,9 +35,11 @@ public class CommunityController {
     private final CommunityPostService communityPostService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CommunityPostDto>>> getApprovedPosts() {
+    public ResponseEntity<ApiResponse<Page<CommunityPostDto>>> getApprovedPosts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
         try {
-            List<CommunityPostDto> posts = communityPostService.getApprovedPosts();
+            Page<CommunityPostDto> posts = communityPostService.getApprovedPosts(page, size);
             return ResponseEntity.ok(ApiResponse.success("Community posts retrieved successfully", posts));
         } catch (Exception e) {
             log.error("Error retrieving approved community posts", e);
@@ -41,6 +47,7 @@ public class CommunityController {
                     .body(ApiResponse.error("Failed to retrieve community posts"));
         }
     }
+
 
     @GetMapping("/pending")
     @PreAuthorize("hasRole('ADMIN')")

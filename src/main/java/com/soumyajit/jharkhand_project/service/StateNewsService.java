@@ -18,6 +18,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import com.soumyajit.jharkhand_project.entity.NewsCategory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,18 +41,20 @@ public class StateNewsService {
     private final ModelMapper modelMapper;
     private final NotificationService notificationService;
 
-    @Cacheable(value = "state-news", key = "#stateName")  // ✅ FIXED parameter
-    public List<StateNewsDto> getNewsByState(String stateName) {  // ✅ FIXED method name
+//    @Cacheable(value = "state-news", key = "#stateName + '_' + #page + '_' + #size") commented as pagination issues
+    public Page<StateNewsDto> getNewsByState(String stateName, int page, int size) {
+
         State state = stateRepository.findByNameIgnoreCase(stateName)
                 .orElseThrow(() -> new EntityNotFoundException("State not found: " + stateName));
 
-        List<StateNews> news = stateNewsRepository
-                .findByStateAndPublishedTrueOrderByCreatedAtDesc(state);  // ✅ FIXED
+        Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "createdAt");
 
-        return news.stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+        Page<StateNews> newsPage = stateNewsRepository
+                .findByStateAndPublishedTrueOrderByCreatedAtDesc(state, pageable);
+
+        return newsPage.map(this::convertToDto);
     }
+
 
     @Cacheable(value = "recent-state-news", key = "#stateName + '_' + #days")
     public List<StateNewsDto> getRecentNewsByState(String stateName, int days) {  // ✅ FIXED method name

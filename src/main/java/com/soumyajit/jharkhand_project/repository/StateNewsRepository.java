@@ -8,20 +8,25 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
 public interface StateNewsRepository extends JpaRepository<StateNews, Long> {
-    List<StateNews> findByStateAndPublishedTrueOrderByCreatedAtDesc(State state);  // ✅ FIXED
+    Page<StateNews> findByStateAndPublishedTrueOrderByCreatedAtDesc(State state, Pageable pageable);
+
+
     List<StateNews> findByAuthorOrderByCreatedAtDesc(User author);
 
-    @Query("SELECT sn FROM StateNews sn WHERE sn.state.name = :stateName AND sn.published = true ORDER BY sn.createdAt DESC")  // ✅ FIXED
-    List<StateNews> findByStateNameAndPublishedTrue(@Param("stateName") String stateName);  // ✅ FIXED
+    @Query("SELECT sn FROM StateNews sn WHERE sn.state.name = :stateName AND sn.published = true ORDER BY sn.createdAt DESC")
+    List<StateNews> findByStateNameAndPublishedTrue(@Param("stateName") String stateName);
 
-    List<StateNews> findByStateAndPublishedTrueAndCreatedAtAfterOrderByCreatedAtDesc(  // ✅ FIXED
-                                                                                       State state,  // ✅ FIXED
+    List<StateNews> findByStateAndPublishedTrueAndCreatedAtAfterOrderByCreatedAtDesc(
+                                                                                       State state,
                                                                                        LocalDateTime after
     );
 
