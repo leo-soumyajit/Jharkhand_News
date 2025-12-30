@@ -68,14 +68,30 @@ public class EventController {
     @PostMapping
     public ResponseEntity<ApiResponse<EventDto>> createEvent(
             @RequestPart("event") String eventJson,
-            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            @RequestPart(value = "images") List<MultipartFile> images, // ✅ REQUIRED (removed "required = false")
             Authentication authentication) {
 
         try {
             User user = (User) authentication.getPrincipal();
 
-            // Parse JSON string manually
+            // Parse JSON
             CreateEventRequest request = objectMapper.readValue(eventJson, CreateEventRequest.class);
+
+            // ✅ Validate required fields
+            if (request.getTitle() == null || request.getTitle().isBlank()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Event title is required"));
+            }
+
+            if (request.getDescription() == null || request.getDescription().isBlank()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Event description is required"));
+            }
+
+            if (images == null || images.isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("At least one event image is required"));
+            }
 
             EventDto event = eventService.createEvent(request, images, user);
             return ResponseEntity.status(HttpStatus.CREATED)
@@ -83,9 +99,10 @@ public class EventController {
         } catch (Exception e) {
             log.error("Error creating event", e);
             return ResponseEntity.internalServerError()
-                    .body(ApiResponse.error("Failed to create event"));
+                    .body(ApiResponse.error("Failed to create event: " + e.getMessage()));
         }
     }
+
 
     @PostMapping("/{eventId}/approve")
     @PreAuthorize("hasRole('ADMIN')")

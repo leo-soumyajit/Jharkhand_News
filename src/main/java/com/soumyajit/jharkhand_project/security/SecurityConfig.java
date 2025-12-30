@@ -33,7 +33,7 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final AuthTokenFilter authTokenFilter;
     private final AuthEntryPointJwt unauthorizedHandler;
-    private final CustomOidcUserService customOidcUserService; // Correct service
+    private final CustomOidcUserService customOidcUserService;
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
 
     @Bean
@@ -58,29 +58,31 @@ public class SecurityConfig {
                 .authenticationProvider(authenticationProvider())
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints for authentication
-//                        .requestMatchers("/oauth2/**", "/login/oauth2/**", "/api/v1/auth/**").permitAll()
+                        // ✅ Property Inquiries - MUST BE AUTHENTICATED (Add BEFORE general properties matcher)
+                        .requestMatchers("/api/v1/properties/*/inquiries/**").authenticated()
+                        .requestMatchers("/api/v1/admin/inquiries/**").hasAuthority("ROLE_ADMIN")
 
-                        // Your explicitly protected endpoints
-//                        .requestMatchers("/api/v1/district-news/**").authenticated()
-                        .requestMatchers("/api/v1/events").authenticated()
-                        .requestMatchers("/api/v1/jobs").authenticated()
-                        .requestMatchers("/api/v1/community").authenticated()
+                        // Protected endpoints
+                        .requestMatchers("/api/v1/events/*").authenticated()
+                        .requestMatchers("/api/v1/jobs/*").authenticated()
+//                        .requestMatchers("/api/v1/community").authenticated()
                         .requestMatchers("/api/v1/comments/**").authenticated()
                         .requestMatchers("/api/v1/districts").authenticated()
-                                .requestMatchers("/api/v1/properties/my-properties").authenticated()
-                                .requestMatchers("/api/v1/properties/pending").hasAuthority("ROLE_ADMIN")
-                                .requestMatchers(HttpMethod.POST, "/api/v1/properties/*/approve").hasAuthority("ROLE_ADMIN")
-                                .requestMatchers(HttpMethod.POST, "/api/v1/properties").authenticated()
-                                .requestMatchers(HttpMethod.DELETE, "/api/v1/properties/**").authenticated()
-                                .requestMatchers(HttpMethod.PUT, "/api/v1/properties/**").authenticated()
-                                .requestMatchers("/api/v1/properties/**").permitAll()
+
+                        // Properties endpoints
+                        .requestMatchers("/api/v1/properties/my-properties").authenticated()
+                        .requestMatchers("/api/v1/properties/pending").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/properties/*/approve").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/properties").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/properties/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/properties/**").authenticated()
+                        .requestMatchers("/api/v1/properties/**").permitAll()  // ✅ This is now AFTER inquiry matchers
 
                         .anyRequest().permitAll()
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo
-                                .oidcUserService(customOidcUserService) // Correctly wired
+                                .oidcUserService(customOidcUserService)
                         )
                         .successHandler(oAuth2AuthenticationSuccessHandler)
                 )

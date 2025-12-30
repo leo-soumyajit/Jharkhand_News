@@ -1,9 +1,6 @@
 package com.soumyajit.jharkhand_project.service;
 
-import com.soumyajit.jharkhand_project.dto.CommentDto;
-import com.soumyajit.jharkhand_project.dto.CreatePropertyRequest;
-import com.soumyajit.jharkhand_project.dto.PropertyDto;
-import com.soumyajit.jharkhand_project.dto.PropertySearchRequest;
+import com.soumyajit.jharkhand_project.dto.*;
 import com.soumyajit.jharkhand_project.entity.*;
 import com.soumyajit.jharkhand_project.repository.CommentRepository;
 import com.soumyajit.jharkhand_project.repository.PropertyRepository;
@@ -31,6 +28,7 @@ import org.springframework.data.jpa.domain.Specification;
 
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -52,13 +50,49 @@ public class PropertyService {
     public List<PropertyDto> getApprovedProperties() {
         List<Property> properties = propertyRepository.findByStatusOrderByCreatedAtDesc(PostStatus.APPROVED);
 
-        return properties.stream()
-                .filter(p -> p.getPropertyStatus() == Property.PropertyStatus.FOR_SALE ||
-                        p.getPropertyStatus() == Property.PropertyStatus.FOR_RENT)
+        // ✅ Define 2 days threshold for showing recently sold/rented properties
+        LocalDateTime twoDaysAgo = LocalDateTime.now().minusDays(2);
+
+        // ✅ Separate available and recently sold/rented
+        List<Property> availableProperties = new ArrayList<>();
+        List<Property> recentlySoldOrRented = new ArrayList<>();
+
+        for (Property property : properties) {
+            Property.PropertyStatus status = property.getPropertyStatus();
+
+            if (status == Property.PropertyStatus.FOR_SALE ||
+                    status == Property.PropertyStatus.FOR_RENT) {
+                // ✅ Available properties (always show at top)
+                availableProperties.add(property);
+
+            } else if ((status == Property.PropertyStatus.SOLD ||
+                    status == Property.PropertyStatus.RENTED) &&
+                    property.getUpdatedAt().isAfter(twoDaysAgo)) {
+                // ✅ Recently SOLD/RENTED (within 2 days) - show at bottom
+                recentlySoldOrRented.add(property);
+            }
+            // ✅ SOLD/RENTED older than 2 days → Automatically excluded (archived)
+        }
+
+        // ✅ Combine: Available first, then recently sold/rented at bottom
+        List<Property> result = new ArrayList<>();
+        result.addAll(availableProperties);
+        result.addAll(recentlySoldOrRented);
+
+        log.info("Fetched {} available and {} recently sold/rented properties",
+                availableProperties.size(), recentlySoldOrRented.size());
+
+        return result.stream()
                 .map(property -> modelMapper.map(property, PropertyDto.class))
                 .collect(Collectors.toList());
     }
 
+
+    @CacheEvict(
+            value = {"properties", "recent-properties"},
+            allEntries = true,
+            condition = "#author.role.name() == 'ADMIN'"
+    )
     public PropertyDto createProperty(CreatePropertyRequest request,
                                       List<MultipartFile> images,
                                       List<MultipartFile> floorPlans,
@@ -87,8 +121,13 @@ public class PropertyService {
 
         Property property = modelMapper.map(request, Property.class);
         property.setAuthor(author);
-        property.setStatus(PostStatus.PENDING);
-        property.setState("Jharkhand");
+
+        PostStatus status = author.getRole().equals(User.Role.ADMIN)
+                ? PostStatus.APPROVED
+                : PostStatus.PENDING;
+
+        property.setStatus(status);
+        property.setState(request.getState());
 
 
         try {
@@ -118,6 +157,7 @@ public class PropertyService {
         return modelMapper.map(savedProperty, PropertyDto.class);
     }
 
+
     @CacheEvict(value = {"properties", "recent-properties"}, allEntries = true)
     public PropertyDto approveProperty(Long propertyId) {
         Property property = propertyRepository.findById(propertyId)
@@ -127,11 +167,16 @@ public class PropertyService {
         Property savedProperty = propertyRepository.save(property);
         log.info("Approved property with ID: {}", propertyId);
 
-        notificationService.notifyUser(property.getAuthor().getId(),
-                "Your property '" + property.getTitle() + "' has been approved!");
+        notificationService.notifyUser(
+                property.getAuthor().getId(),
+                "Your property '" + property.getTitle() + "' has been approved!",
+                propertyId,
+                "PROPERTY"
+        );
 
         return modelMapper.map(savedProperty, PropertyDto.class);
     }
+
 
     public List<PropertyDto> getPendingProperties() {
         List<Property> properties = propertyRepository.findByStatusOrderByCreatedAtDesc(PostStatus.PENDING);
@@ -212,25 +257,39 @@ public class PropertyService {
             throw new RuntimeException("Unauthorized: You can only update your own properties");
         }
 
+        // ✅ Get current status
+        Property.PropertyStatus currentStatus = property.getPropertyStatus();
 
-        if (property.getPropertyStatus() == Property.PropertyStatus.FOR_SALE &&
+        // ✅ Validate status transitions - Allow toggle/revert
+        if (currentStatus == Property.PropertyStatus.FOR_SALE &&
                 newStatus != Property.PropertyStatus.SOLD) {
             throw new IllegalArgumentException("FOR_SALE property can only be marked as SOLD");
         }
 
-        if (property.getPropertyStatus() == Property.PropertyStatus.FOR_RENT &&
+        if (currentStatus == Property.PropertyStatus.SOLD &&
+                newStatus != Property.PropertyStatus.FOR_SALE) {
+            throw new IllegalArgumentException("SOLD property can only be reverted to FOR_SALE");
+        }
+
+        if (currentStatus == Property.PropertyStatus.FOR_RENT &&
                 newStatus != Property.PropertyStatus.RENTED) {
             throw new IllegalArgumentException("FOR_RENT property can only be marked as RENTED");
+        }
+
+        if (currentStatus == Property.PropertyStatus.RENTED &&
+                newStatus != Property.PropertyStatus.FOR_RENT) {
+            throw new IllegalArgumentException("RENTED property can only be reverted to FOR_RENT");
         }
 
         property.setPropertyStatus(newStatus);
         Property savedProperty = propertyRepository.save(property);
 
-        log.info("Property ID: {} status changed to {} by user: {}",
-                propertyId, newStatus, user.getEmail());
+        log.info("Property ID: {} status changed from {} to {} by user: {}",
+                propertyId, currentStatus, newStatus, user.getEmail());
 
         return modelMapper.map(savedProperty, PropertyDto.class);
     }
+
 
     @Cacheable(value = "recent-properties", key = "#days")
     public List<PropertyDto> getRecentProperties(int days) {
@@ -239,12 +298,34 @@ public class PropertyService {
         List<Property> recentProperties = propertyRepository
                 .findByStatusAndCreatedAtAfterOrderByCreatedAtDesc(PostStatus.APPROVED, dateThreshold);
 
-        return recentProperties.stream()
-                .filter(p -> p.getPropertyStatus() == Property.PropertyStatus.FOR_SALE ||
-                        p.getPropertyStatus() == Property.PropertyStatus.FOR_RENT)
+        // ✅ Apply same 2-day filter for sold/rented
+        LocalDateTime twoDaysAgo = LocalDateTime.now().minusDays(2);
+
+        List<Property> availableProperties = new ArrayList<>();
+        List<Property> recentlySoldOrRented = new ArrayList<>();
+
+        for (Property property : recentProperties) {
+            Property.PropertyStatus status = property.getPropertyStatus();
+
+            if (status == Property.PropertyStatus.FOR_SALE ||
+                    status == Property.PropertyStatus.FOR_RENT) {
+                availableProperties.add(property);
+            } else if ((status == Property.PropertyStatus.SOLD ||
+                    status == Property.PropertyStatus.RENTED) &&
+                    property.getUpdatedAt().isAfter(twoDaysAgo)) {
+                recentlySoldOrRented.add(property);
+            }
+        }
+
+        List<Property> result = new ArrayList<>();
+        result.addAll(availableProperties);
+        result.addAll(recentlySoldOrRented);
+
+        return result.stream()
                 .map(property -> modelMapper.map(property, PropertyDto.class))
                 .collect(Collectors.toList());
     }
+
 
     public List<PropertyDto> getMyProperties(User user) {
         List<Property> properties = propertyRepository.findByAuthorId(user.getId());
@@ -362,6 +443,105 @@ public class PropertyService {
 
         return Sort.by(direction, sortBy);
     }
+
+    /**
+     * ✅ Admin: Get all properties with creator and contact info
+     */
+    public Page<PropertyWithCreatorDto> getAllPropertiesWithCreators(Pageable pageable, String statusFilter) {
+        Page<Property> properties;
+
+        if (statusFilter != null && !statusFilter.isEmpty() && !statusFilter.equalsIgnoreCase("ALL")) {
+            try {
+                PostStatus status = PostStatus.valueOf(statusFilter.toUpperCase());
+                properties = propertyRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
+            } catch (IllegalArgumentException e) {
+                // Invalid status, return all
+                properties = propertyRepository.findAllByOrderByCreatedAtDesc(pageable);
+            }
+        } else {
+            properties = propertyRepository.findAllByOrderByCreatedAtDesc(pageable);
+        }
+
+        return properties.map(this::toPropertyWithCreatorDto);
+    }
+
+
+    /**
+     * ✅ Convert Property entity to PropertyWithCreatorDto
+     */
+    private PropertyWithCreatorDto toPropertyWithCreatorDto(Property property) {
+        User creator = property.getAuthor();
+
+        // ✅ Build Creator DTO
+        PropertyWithCreatorDto.CreatorDto creatorDto = PropertyWithCreatorDto.CreatorDto.builder()
+                .userId(creator != null ? creator.getId() : null)
+                .name(creator != null ? creator.getFirstName() + " " + creator.getLastName() : "Unknown")
+                .email(creator != null ? creator.getEmail() : null)
+                .role(creator != null && creator.getRole() != null ? creator.getRole().name() : null)
+                .build();
+
+        // ✅ Build Contact DTO
+        PropertyWithCreatorDto.ContactDto contactDto = PropertyWithCreatorDto.ContactDto.builder()
+                .name(property.getContactName())
+                .phone(property.getContactPhone())
+                .email(property.getContactEmail())
+                .postedByType(property.getPostedByType() != null ? property.getPostedByType().name() : null)
+                .build();
+
+        // ✅ Build main DTO
+        return PropertyWithCreatorDto.builder()
+                // Property info
+                .propertyId(property.getId())
+                .title(property.getTitle())
+                .description(property.getDescription())
+                .propertyType(property.getPropertyType() != null ? property.getPropertyType().name() : null)
+                .propertyStatus(property.getPropertyStatus() != null ? property.getPropertyStatus().name() : null)
+                .price(property.getPrice())
+                .negotiable(property.getNegotiable())
+
+                // Location
+                .address(property.getAddress())
+                .district(property.getDistrict())
+                .city(property.getCity())
+                .state(property.getState())
+                .pincode(property.getPincode())
+                .locality(property.getLocality())
+                .mapLink(property.getMapLink())  // 🆕 ADDED
+
+                // Specs
+                .totalArea(property.getTotalArea())
+                .bedrooms(property.getBedrooms())
+                .bathrooms(property.getBathrooms())
+                .totalFloors(property.getTotalFloors())  // 🆕 ADDED
+                .floorNumber(property.getFloorNumber())  // 🆕 ADDED
+                .propertyAge(property.getPropertyAge())  // 🆕 ADDED
+                .furnishingStatus(property.getFurnishingStatus() != null ? property.getFurnishingStatus().name() : null)
+                .parkingAvailable(property.getParkingAvailable())
+                .parkingSpaces(property.getParkingSpaces())  // 🆕 ADDED
+                .facingDirection(property.getFacingDirection() != null ? property.getFacingDirection().name() : null)  // 🆕 ADDED
+                .availabilityStatus(property.getAvailabilityStatus() != null ? property.getAvailabilityStatus().name() : null)  // 🆕 ADDED
+                .amenities(property.getAmenities())
+
+                // Images
+                .imageUrls(property.getImageUrls())
+                .mainImageUrl(property.getImageUrls() != null && !property.getImageUrls().isEmpty() ?
+                        property.getImageUrls().get(0) : null)
+                .floorPlanUrls(property.getFloorPlanUrls())  // 🆕 ADDED
+
+                // Creator & Contact
+                .creator(creatorDto)
+                .contact(contactDto)
+
+                // Status
+                .approvalStatus(property.getStatus() != null ? property.getStatus().name() : null)
+                .viewCount(property.getViewCount())
+                .createdAt(property.getCreatedAt())
+                .updatedAt(property.getUpdatedAt())
+                .build();
+    }
+
+
+
 
 
 }

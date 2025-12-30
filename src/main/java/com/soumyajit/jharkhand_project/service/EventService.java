@@ -43,21 +43,47 @@ public class EventService {
                 .collect(Collectors.toList());
     }
 
+    @CacheEvict(value = {"events", "recent-events"}, allEntries = true)
     public EventDto createEvent(CreateEventRequest request, List<MultipartFile> images, User author) {
-        Event event = modelMapper.map(request, Event.class);
-        event.setAuthor(author);
-        event.setStatus(PostStatus.PENDING);
-
-        if (images != null && !images.isEmpty()) {
-            List<String> imageUrls = cloudinaryService.uploadImages(images);
-            event.setImageUrls(imageUrls);
+        // ✅ Validate required fields
+        if (request.getTitle() == null || request.getTitle().isBlank()) {
+            throw new IllegalArgumentException("Event title is required");
         }
+
+        if (request.getDescription() == null || request.getDescription().isBlank()) {
+            throw new IllegalArgumentException("Event description is required");
+        }
+
+        if (images == null || images.isEmpty()) {
+            throw new IllegalArgumentException("At least one event image is required");
+        }
+
+        PostStatus status = author.getRole().equals(User.Role.ADMIN)
+                ? PostStatus.APPROVED
+                : PostStatus.PENDING;
+
+
+        Event event = Event.builder()
+                .title(request.getTitle())
+                .description(request.getDescription())
+                .reglink(request.getReglink()) // ⚠️ Optional
+                .eventDate(request.getEventDate()) // ⚠️ Optional
+                .endDate(request.getEndDate()) // 🆕 Optional - End Date
+                .location(request.getLocation()) // ⚠️ Optional
+                .author(author)
+                .status(status)
+                .build();
+
+        // ✅ Upload images (required)
+        List<String> imageUrls = cloudinaryService.uploadImages(images);
+        event.setImageUrls(imageUrls);
 
         Event savedEvent = eventRepository.save(event);
         log.info("Created event with ID: {} by user: {}", savedEvent.getId(), author.getEmail());
 
         return modelMapper.map(savedEvent, EventDto.class);
     }
+
 
     @CacheEvict(value = {"events", "recent-events"}, allEntries = true)
     public EventDto approveEvent(Long eventId) {
@@ -68,12 +94,17 @@ public class EventService {
         Event savedEvent = eventRepository.save(event);
         log.info("Approved event with ID: {}", eventId);
 
-        // Send notification to event owner
-        notificationService.notifyUser(event.getAuthor().getId(),
-                "Your event '" + event.getTitle() + "' has been approved!");
+        // ✅ UPDATED: Send notification to event owner with reference
+        notificationService.notifyUser(
+                event.getAuthor().getId(),
+                "Your event '" + event.getTitle() + "' has been approved!",
+                eventId,          // Reference ID
+                "EVENT"           // Reference Type
+        );
 
         return modelMapper.map(savedEvent, EventDto.class);
     }
+
 
 
     public List<EventDto> getPendingEvents() {

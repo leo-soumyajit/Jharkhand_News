@@ -23,12 +23,13 @@ public class CommunityPost {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = true)  // Changed to optional
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT", nullable = false)  // Required field
     private String content;
 
+    @Column(nullable = true)  // Optional field
     private String location;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -51,4 +52,3 @@ public class CommunityPost {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 }
-

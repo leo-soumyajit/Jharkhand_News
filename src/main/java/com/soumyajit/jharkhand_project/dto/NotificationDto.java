@@ -13,4 +13,6 @@ public class NotificationDto {
     private Long id;
     private String message;
     private LocalDateTime createdAt;
+    private Long referenceId;
+    private String referenceType;
 }

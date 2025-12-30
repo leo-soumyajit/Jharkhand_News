@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -28,4 +29,6 @@ public class EventDto {
     private PostStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    // 🆕 OPTIONAL - Event End Date (DATE ONLY)
+    private LocalDate endDate;
 }

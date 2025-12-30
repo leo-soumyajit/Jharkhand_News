@@ -45,20 +45,37 @@ public class JobService {
 
     @CacheEvict(value = {"jobs", "recent-jobs"}, allEntries = true)
     public JobDto createJob(CreateJobRequest request, List<MultipartFile> images, User author) {
+        // Validate required fields
+        if (request.getTitle() == null || request.getTitle().isBlank()) {
+            throw new IllegalArgumentException("Title is required");
+        }
+        if (request.getDescription() == null || request.getDescription().isBlank()) {
+            throw new IllegalArgumentException("Description is required");
+        }
+        if (images == null || images.isEmpty()) {
+            throw new IllegalArgumentException("At least one image is required");
+        }
+
+
+
         Job job = modelMapper.map(request, Job.class);
         job.setAuthor(author);
-        job.setStatus(PostStatus.PENDING);
 
-        if (images != null && !images.isEmpty()) {
-            List<String> imageUrls = cloudinaryService.uploadImages(images);
-            job.setImageUrls(imageUrls);
-        }
+        PostStatus status = author.getRole().equals(User.Role.ADMIN)
+                ? PostStatus.APPROVED
+                : PostStatus.PENDING;
+
+        job.setStatus(status);
+
+        List<String> imageUrls = cloudinaryService.uploadImages(images);
+        job.setImageUrls(imageUrls);
 
         Job savedJob = jobRepository.save(job);
         log.info("Created job with ID: {} by user: {}", savedJob.getId(), author.getEmail());
 
         return modelMapper.map(savedJob, JobDto.class);
     }
+
 
 
     @CacheEvict(value = {"jobs", "recent-jobs"}, allEntries = true)
@@ -70,12 +87,17 @@ public class JobService {
         Job savedJob = jobRepository.save(job);
         log.info("Approved job with ID: {}", jobId);
 
-        // Notify the job poster about approval
-        notificationService.notifyUser(job.getAuthor().getId(),
-                "Your job posting '" + job.getTitle() + "' has been approved!");
+        // ✅ UPDATED: Notify the job poster about approval with reference
+        notificationService.notifyUser(
+                job.getAuthor().getId(),
+                "Your job posting '" + job.getTitle() + "' has been approved!",
+                jobId,            // Reference ID
+                "JOB"             // Reference Type
+        );
 
         return modelMapper.map(savedJob, JobDto.class);
     }
+
 
 
     public List<JobDto> getPendingJobs() {

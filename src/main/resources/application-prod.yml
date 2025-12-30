@@ -65,8 +65,11 @@ spring:
     username: updatesjharkhandbihar@gmail.com
     password: ${EMAIL_PASS}
     properties:
-      mail.smtp.auth: true
-      mail.smtp.starttls.enable: true
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 server:
   port: 8080
@@ -78,6 +81,18 @@ app:
     secret: ${JWT_SEC}
     expiration: 15552000000
     refresh-expiration: 31536000000
+
+  # ✅ INQUIRY EMAIL CONFIGURATION
+  inquiry:
+    email: support@jharkhandupdates.com
+
+  # ✅ BASE URL (same level as inquiry)
+  base-url: https://jharkhandbiharupdates.com
+
+  # ✅ MAIL CONFIGURATION (same level as inquiry)
+  mail:
+    from: updatesjharkhandbihar@gmail.com
+    from-name: Jharkhand Bihar Updates
 
   otp:
     expiration: 300000
@@ -96,11 +111,9 @@ logging:
     com.jharkhand.news: DEBUG
     org.springframework.security: DEBUG
 
-
 onesignal:
   app:
     id: 8f6aeaec-1885-4245-b351-0885c4cb7312
   rest:
     api:
       key: os_v2_app_r5vov3ayqvbelm2rbcc4js3tcildv6g56vhuhbnvifdbdzpcff64j2n4e4asq5advnpuvwloauftpysjom2ncwvdha3nykewgoacu4a
-

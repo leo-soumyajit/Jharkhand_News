@@ -24,14 +24,13 @@ public class Job {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false)  // REQUIRED
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT", nullable = false)  // REQUIRED
     private String description;
 
-
-
+    // All fields below are now OPTIONAL
     private String company;
 
     private String location;
@@ -50,7 +49,7 @@ public class Job {
     @CollectionTable(name = "job_images",
             joinColumns = @JoinColumn(name = "job_id"))
     @Column(name = "image_url")
-    private List<String> imageUrls = new ArrayList<>();
+    private List<String> imageUrls = new ArrayList<>();  // REQUIRED (at least one image)
 
     @Enumerated(EnumType.STRING)
     @Builder.Default

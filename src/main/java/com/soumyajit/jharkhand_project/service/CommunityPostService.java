@@ -44,10 +44,16 @@ public class CommunityPostService {
                 .collect(Collectors.toList());
     }
 
+    @CacheEvict(value = {"community-posts", "recent-community-posts"}, allEntries = true)
     public CommunityPostDto createPost(CreateCommunityPostRequest request, List<MultipartFile> images, User author) {
+
+
         CommunityPost post = modelMapper.map(request, CommunityPost.class);
         post.setAuthor(author);
-        post.setStatus(PostStatus.PENDING);
+        PostStatus status = author.getRole().equals(User.Role.ADMIN)
+                ? PostStatus.APPROVED
+                : PostStatus.PENDING;
+        post.setStatus(status);
 
         if (images != null && !images.isEmpty()) {
             List<String> imageUrls = cloudinaryService.uploadImages(images);
@@ -69,12 +75,17 @@ public class CommunityPostService {
         CommunityPost savedPost = communityPostRepository.save(post);
         log.info("Approved community post with ID: {}", postId);
 
-        // Notify the author about approval
-        notificationService.notifyUser(post.getAuthor().getId(),
-                "Your community post '" + post.getTitle() + "' has been approved!");
+        // ✅ UPDATED: Notify the author about approval with reference
+        notificationService.notifyUser(
+                post.getAuthor().getId(),
+                "Your community post '" + post.getTitle() + "' has been approved!",
+                postId,           // Reference ID
+                "COMMUNITY"       // Reference Type
+        );
 
         return modelMapper.map(savedPost, CommunityPostDto.class);
     }
+
 
 
     public List<CommunityPostDto> getPendingPosts() {

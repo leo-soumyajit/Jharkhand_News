@@ -79,6 +79,11 @@ public class CommunityController {
             ObjectMapper objectMapper = new ObjectMapper();
             CreateCommunityPostRequest request = objectMapper.readValue(postJson, CreateCommunityPostRequest.class);
 
+            if (request.getContent() == null || request.getContent().trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Content is required"));
+            }
+
             CommunityPostDto post = communityPostService.createPost(request, images, user);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success("Community post created successfully and pending approval", post));

@@ -37,7 +37,7 @@ public class NotificationService {
 
     // Create and save a notification for a user
     @Async
-    public void notifyUser(Long userId, String message) {
+    public void notifyUser(Long userId, String message,Long referenceId, String referenceType) {
         // 1. Save to database
         Notification notification = new Notification();
         User user = new User();
@@ -45,6 +45,8 @@ public class NotificationService {
         notification.setUser(user);
         notification.setMessage(message);
         notification.setCreatedAt(LocalDateTime.now());
+        notification.setReferenceId(referenceId);
+        notification.setReferenceType(referenceType);
         notificationRepository.save(notification);
 
         // 2. Send push notification via OneSignal
@@ -69,9 +71,16 @@ public class NotificationService {
         List<Notification> notifications =
                 notificationRepository.findByUserIdAndCreatedAtAfterOrderByCreatedAtDesc(userId, threshold);
         return notifications.stream()
-                .map(n -> new NotificationDto(n.getId(), n.getMessage(), n.getCreatedAt()))
+                .map(n -> new NotificationDto(
+                        n.getId(),
+                        n.getMessage(),
+                        n.getCreatedAt(),
+                        n.getReferenceId(),
+                        n.getReferenceType()
+                ))
                 .collect(Collectors.toList());
     }
+
 
     @Transactional
     public void deleteNotificationByIdAndUser(Long id, User user) {

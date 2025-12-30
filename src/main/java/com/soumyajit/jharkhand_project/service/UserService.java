@@ -29,6 +29,7 @@ public class UserService {
     private final NotificationRepository notificationRepository;
     private final ModelMapper modelMapper;
     private final ImageUploadService imageUploadService;
+    private final PropertyRepository propertyRepository;  // ✅ Already imported
 
     public UserProfileDto getUserProfile(User user) {
         User currentUser = userRepository.findById(user.getId())
@@ -64,20 +65,20 @@ public class UserService {
     }
 
     public UserStatsDto getUserStats(User user) {
-        long stateNewsCount = stateNewsRepository.countByAuthor(user);  // ✅ FIXED variable name
+        long stateNewsCount = stateNewsRepository.countByAuthor(user);
         long eventsCount = eventRepository.countByAuthor(user);
         long jobsCount = jobRepository.countByAuthor(user);
         long communityPostsCount = communityPostRepository.countByAuthor(user);
         long commentsCount = commentRepository.countByAuthor(user);
-//        long notificationsCount = notificationRepository.countByUser(user);
+        long propertiesCount = propertyRepository.countByAuthor(user);  // ✅ Already here
 
         UserStatsDto stats = UserStatsDto.builder()
-                .totalStateNews(stateNewsCount)  // ✅ FIXED method name
+                .totalStateNews(stateNewsCount)
                 .totalEvents(eventsCount)
                 .totalJobs(jobsCount)
                 .totalCommunityPosts(communityPostsCount)
                 .totalComments(commentsCount)
-//                .totalNotifications(notificationsCount)
+                .totalProperties(propertiesCount)  // ✅ ADDED - This was missing!
                 .build();
 
         log.info("Retrieved stats for user: {} - Total content: {}",
@@ -88,13 +89,14 @@ public class UserService {
 
     public UserContentDto getUserContent(User user) {
         // Get all user's content sorted by creation date (newest first)
-        var stateNewsList = stateNewsRepository.findByAuthorOrderByCreatedAtDesc(user);  // ✅ FIXED variable name
+        var stateNewsList = stateNewsRepository.findByAuthorOrderByCreatedAtDesc(user);
         var eventsList = eventRepository.findByAuthorOrderByCreatedAtDesc(user);
         var jobsList = jobRepository.findByAuthorOrderByCreatedAtDesc(user);
         var communityPostsList = communityPostRepository.findByAuthorOrderByCreatedAtDesc(user);
+        var propertiesList = propertyRepository.findByAuthorOrderByCreatedAtDesc(user);  // ✅ ADDED - Fetch properties
 
         UserContentDto content = UserContentDto.builder()
-                .stateNews(stateNewsList.stream()  // ✅ FIXED variable reference
+                .stateNews(stateNewsList.stream()
                         .map(news -> modelMapper.map(news, StateNewsDto.class))
                         .collect(Collectors.toList()))
                 .events(eventsList.stream()
@@ -106,8 +108,11 @@ public class UserService {
                 .communityPosts(communityPostsList.stream()
                         .map(post -> modelMapper.map(post, CommunityPostDto.class))
                         .collect(Collectors.toList()))
-                .totalElements(stateNewsList.size() + eventsList.size() +  // ✅ FIXED variable reference
-                        jobsList.size() + communityPostsList.size())
+                .properties(propertiesList.stream()  // ✅ ADDED - Map properties to DTO
+                        .map(property -> modelMapper.map(property, PropertyDto.class))
+                        .collect(Collectors.toList()))
+                .totalElements(stateNewsList.size() + eventsList.size() +
+                        jobsList.size() + communityPostsList.size() + propertiesList.size())  // ✅ ADDED - Include properties count
                 .build();
 
         log.info("Retrieved all content for user: {} - Total items: {}",

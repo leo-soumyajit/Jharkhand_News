@@ -10,6 +10,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -33,4 +34,6 @@ public class CreateEventRequest {
     private String reglink;
 
     private String location;
+    // 🆕 OPTIONAL - Event End Date (DATE ONLY)
+    private LocalDate endDate;
 }

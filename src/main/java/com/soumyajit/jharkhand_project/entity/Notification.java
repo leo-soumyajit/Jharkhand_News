@@ -27,5 +27,11 @@ public class Notification {
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(name = "reference_id")
+    private Long referenceId;
+
+    @Column(name = "reference_type", length = 80)
+    private String referenceType; // JOB, EVENT, COMMUNITY, LOCAL_NEWS
+
 }
 

@@ -68,7 +68,7 @@ public class JobController {
     @PostMapping
     public ResponseEntity<ApiResponse<JobDto>> createJob(
             @RequestPart("job") String jobJson,
-            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            @RequestPart(value = "images", required = true) List<MultipartFile> images,  // Make images required
             Authentication authentication) {
 
         try {
@@ -77,15 +77,22 @@ public class JobController {
             // Parse JSON string manually
             CreateJobRequest request = objectMapper.readValue(jobJson, CreateJobRequest.class);
 
+            // Validate that at least one image is provided
+            if (images == null || images.isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("At least one image is required"));
+            }
+
             JobDto job = jobService.createJob(request, images, user);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success("Job created successfully and pending approval", job));
         } catch (Exception e) {
             log.error("Error creating job", e);
             return ResponseEntity.internalServerError()
-                    .body(ApiResponse.error("Failed to create job"));
+                    .body(ApiResponse.error("Failed to create job: " + e.getMessage()));
         }
     }
+
 
     @PostMapping("/{jobId}/approve")
     @PreAuthorize("hasRole('ADMIN')")

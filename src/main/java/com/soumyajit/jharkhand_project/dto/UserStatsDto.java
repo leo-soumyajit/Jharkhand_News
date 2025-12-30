@@ -17,10 +17,11 @@ public class UserStatsDto {
     private long totalJobs;
     private long totalCommunityPosts;
     private long totalComments;
+    private long totalProperties;
 //    private long totalNotifications;
 
     public long getTotalContent() {
-        return totalStateNews + totalEvents + totalJobs + totalCommunityPosts;
+        return totalStateNews + totalEvents + totalJobs + totalCommunityPosts + totalProperties;
     }
 }
 

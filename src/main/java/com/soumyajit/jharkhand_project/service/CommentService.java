@@ -10,7 +10,7 @@ import com.soumyajit.jharkhand_project.repository.*;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper; // Still used for simple cases
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +38,8 @@ public class CommentService {
         void setPostIdOnComment(Comment comment, Comment parent);
         User getPostAuthor();
         String getPostTitle();
+        Long getPostId(); // ✅ NEW
+        String getReferenceType(); // ✅ NEW
     }
 
     private CommentDto mapCommentToDto(Comment comment) {
@@ -101,8 +103,15 @@ public class CommentService {
                     .orElseThrow(() -> new EntityNotFoundException("Parent comment not found"));
             comment.setParentComment(parentComment);
             infoProvider.setPostIdOnComment(comment, parentComment);
+
+            // ✅ UPDATED: Notify parent comment author with reference
             if (!parentComment.getAuthor().getId().equals(author.getId())) {
-                notificationService.notifyUser(parentComment.getAuthor().getId(), author.getFirstName() + " " + author.getLastName() + " replied to your comment.");
+                notificationService.notifyUser(
+                        parentComment.getAuthor().getId(),
+                        author.getFirstName() + " " + author.getLastName() + " replied to your comment.",
+                        infoProvider.getPostId(),
+                        infoProvider.getReferenceType()
+                );
             }
         } else {
             infoProvider.setPostIdOnComment(comment, null);
@@ -110,8 +119,15 @@ public class CommentService {
 
         Comment savedComment = commentRepository.save(comment);
         User postAuthor = infoProvider.getPostAuthor();
+
+        // ✅ UPDATED: Notify post author with reference
         if (!postAuthor.getId().equals(author.getId())) {
-            notificationService.notifyUser(postAuthor.getId(), author.getFirstName() + " " + author.getLastName() + " commented on your post '" + infoProvider.getPostTitle() + "'");
+            notificationService.notifyUser(
+                    postAuthor.getId(),
+                    author.getFirstName() + " " + author.getLastName() + " commented on your post '" + infoProvider.getPostTitle() + "'",
+                    infoProvider.getPostId(),
+                    infoProvider.getReferenceType()
+            );
         }
 
         return mapCommentToDto(savedComment);
@@ -123,6 +139,8 @@ public class CommentService {
             @Override public void setPostIdOnComment(Comment c, Comment p) { c.setStateNewsId(p != null ? p.getStateNewsId() : newsId); }
             @Override public User getPostAuthor() { return news.getAuthor(); }
             @Override public String getPostTitle() { return news.getTitle(); }
+            @Override public Long getPostId() { return newsId; } // ✅ NEW
+            @Override public String getReferenceType() { return "LOCAL_NEWS"; } // ✅ NEW
         });
     }
 
@@ -132,6 +150,8 @@ public class CommentService {
             @Override public void setPostIdOnComment(Comment c, Comment p) { c.setEventId(p != null ? p.getEventId() : eventId); }
             @Override public User getPostAuthor() { return event.getAuthor(); }
             @Override public String getPostTitle() { return event.getTitle(); }
+            @Override public Long getPostId() { return eventId; } // ✅ NEW
+            @Override public String getReferenceType() { return "EVENT"; } // ✅ NEW
         });
     }
 
@@ -141,6 +161,8 @@ public class CommentService {
             @Override public void setPostIdOnComment(Comment c, Comment p) { c.setJobId(p != null ? p.getJobId() : jobId); }
             @Override public User getPostAuthor() { return job.getAuthor(); }
             @Override public String getPostTitle() { return job.getTitle(); }
+            @Override public Long getPostId() { return jobId; } // ✅ NEW
+            @Override public String getReferenceType() { return "JOB"; } // ✅ NEW
         });
     }
 
@@ -150,6 +172,8 @@ public class CommentService {
             @Override public void setPostIdOnComment(Comment c, Comment p) { c.setCommunityPostId(p != null ? p.getCommunityPostId() : postId); }
             @Override public User getPostAuthor() { return post.getAuthor(); }
             @Override public String getPostTitle() { return post.getTitle(); }
+            @Override public Long getPostId() { return postId; } // ✅ NEW
+            @Override public String getReferenceType() { return "COMMUNITY"; } // ✅ NEW
         });
     }
 

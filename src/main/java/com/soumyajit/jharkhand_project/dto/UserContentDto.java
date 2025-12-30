@@ -17,6 +17,8 @@ public class UserContentDto {
     private List<EventDto> events;
     private List<JobDto> jobs;
     private List<CommunityPostDto> communityPosts;
+    private List<PropertyDto> properties;
     private long totalElements;
+
 }
 

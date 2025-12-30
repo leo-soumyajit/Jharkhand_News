@@ -52,7 +52,7 @@ public class Property {
     @Column(nullable = false)
     private String city;
 
-    private String state = "Jharkhand";
+    private String state;
 
     private String pincode;
 
@@ -148,7 +148,7 @@ public class Property {
     }
 
     public enum FurnishingStatus {
-        FURNISHED, SEMI_FURNISHED, UNFURNISHED
+        FURNISHED, SEMI_FURNISHED, UNFURNISHED,FULLY_FURNISHED
     }
 
     public enum FacingDirection {
@@ -160,6 +160,6 @@ public class Property {
     }
 
     public enum PostedByType {
-        OWNER, DEALER, BUILDER
+        OWNER, DEALER, BUILDER,AGENT
     }
 }

@@ -5,12 +5,13 @@ import com.soumyajit.jharkhand_project.Response.ApiResponse;
 import com.soumyajit.jharkhand_project.dto.CreatePropertyRequest;
 import com.soumyajit.jharkhand_project.dto.PropertyDto;
 import com.soumyajit.jharkhand_project.dto.PropertySearchRequest;
+import com.soumyajit.jharkhand_project.dto.PropertyWithCreatorDto;
 import com.soumyajit.jharkhand_project.entity.Property;
 import com.soumyajit.jharkhand_project.entity.User;
 import com.soumyajit.jharkhand_project.service.PropertyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
+import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,6 +19,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -212,6 +214,36 @@ public class PropertyController {
             log.error("Error searching properties", e);
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error("Failed to search properties: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/admin/properties/all-with-creators")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Page<PropertyWithCreatorDto>>> getAllPropertiesWithCreators(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false, defaultValue = "ALL") String status) {
+
+        log.info("Admin fetching all properties with creator details. Page: {}, Size: {}, Status filter: {}",
+                page, size, status);
+
+        try {
+            Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+            Page<PropertyWithCreatorDto> properties = propertyService.getAllPropertiesWithCreators(pageable, status);
+
+            log.info("Found {} properties. Total pages: {}",
+                    properties.getTotalElements(), properties.getTotalPages());
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(
+                            "Properties with creator details fetched successfully",
+                            properties
+                    )
+            );
+        } catch (Exception e) {
+            log.error("Error fetching properties with creators: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to fetch properties: " + e.getMessage()));
         }
     }
 }

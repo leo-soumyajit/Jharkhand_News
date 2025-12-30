@@ -44,6 +44,8 @@ public class CreatePropertyRequest {
     @NotBlank(message = "City is required")
     private String city;
 
+    private String state;
+
     private String pincode;
 
     private String locality;
