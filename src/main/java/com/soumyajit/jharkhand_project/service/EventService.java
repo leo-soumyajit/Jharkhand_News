@@ -35,6 +35,7 @@ public class EventService {
     private final ModelMapper modelMapper;
     private final NotificationService notificationService;
 
+
     @Cacheable(value = {"events","recent-events"}, key = "'approved'")
     public List<EventDto> getApprovedEvents() {
         List<Event> events = eventRepository.findByStatusOrderByCreatedAtDesc(PostStatus.APPROVED);
@@ -62,7 +63,6 @@ public class EventService {
                 ? PostStatus.APPROVED
                 : PostStatus.PENDING;
 
-
         Event event = Event.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
@@ -74,15 +74,29 @@ public class EventService {
                 .status(status)
                 .build();
 
-        // ✅ Upload images (required)
-        List<String> imageUrls = cloudinaryService.uploadImages(images);
+        // ✅ FIXED - Upload images and get BOTH URLs and publicIds
+        List<CloudinaryService.CloudinaryUploadResult> uploadResults =
+                cloudinaryService.uploadImagesWithPublicIds(images);
+
+        // Extract URLs
+        List<String> imageUrls = uploadResults.stream()
+                .map(CloudinaryService.CloudinaryUploadResult::getUrl)
+                .collect(Collectors.toList());
+
+        // Extract publicIds for future deletion
+        List<String> publicIds = uploadResults.stream()
+                .map(CloudinaryService.CloudinaryUploadResult::getPublicId)
+                .collect(Collectors.toList());
+
         event.setImageUrls(imageUrls);
+        event.setPublicIds(publicIds);  // ✅ Save publicIds!
 
         Event savedEvent = eventRepository.save(event);
         log.info("Created event with ID: {} by user: {}", savedEvent.getId(), author.getEmail());
 
         return modelMapper.map(savedEvent, EventDto.class);
     }
+
 
 
     @CacheEvict(value = {"events", "recent-events"}, allEntries = true)
@@ -128,13 +142,12 @@ public class EventService {
         dto.setComments(commentDtos);
         return dto;
     }
+
     @CacheEvict(value = {"events","recent-events"}, allEntries = true)
     public void deleteEvent(Long eventId, User user) {
-        // Find the event
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found with ID: " + eventId));
 
-        // Security check - only admin or event owner can delete
         boolean isAdmin = user.getRole().equals(User.Role.ADMIN);
         boolean isOwner = event.getAuthor().getId().equals(user.getId());
 
@@ -142,9 +155,12 @@ public class EventService {
             throw new RuntimeException("Unauthorized: You can only delete your own events");
         }
 
+        // ✅ FIXED - Use deleteImages() with List
+        if (event.getPublicIds() != null && !event.getPublicIds().isEmpty()) {
+            cloudinaryService.deleteImages(event.getPublicIds());
+        }
+
         commentRepository.deleteByEventId(eventId);
-
-
         eventRepository.delete(event);
 
         log.info("Event deleted with ID: {} by user: {} ({})",
@@ -153,6 +169,8 @@ public class EventService {
                 isAdmin ? "ADMIN" : "OWNER"
         );
     }
+
+
 
     @Cacheable(value = "recent-events", key = "#days")
     public List<EventDto> getRecentEvents(int days) {

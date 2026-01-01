@@ -34,7 +34,9 @@ public class CloudinaryService {
             Map<String, Object> uploadResult = cloudinary.uploader()
                     .upload(file.getBytes(),
                             Map.of("resource_type", "auto",
-                                    "folder", "jharkhand_news"));
+                                    "folder", "jharkhand_news",
+                                    "quality", "auto:good",      // - 40-50% compression
+                                    "fetch_format", "auto"));    // WebP for modern browsers
 
             String url = uploadResult.get("secure_url").toString();
             String publicId = uploadResult.get("public_id").toString();

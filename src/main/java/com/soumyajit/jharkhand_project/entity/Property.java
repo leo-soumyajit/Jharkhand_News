@@ -42,7 +42,6 @@ public class Property {
 
     private Boolean negotiable = false;
 
-    // Location
     @Column(nullable = false)
     private String address;
 
@@ -58,7 +57,6 @@ public class Property {
 
     private String locality;
 
-    // MAP LINK - User provides Google Maps link or any map embed link
     @Column(length = 1000)
     private String mapLink;
 
@@ -66,7 +64,6 @@ public class Property {
 
     private Double longitude;
 
-    // Property Specifications
     private Integer totalArea;
 
     private Integer bedrooms;
@@ -84,7 +81,6 @@ public class Property {
 
     private Integer parkingSpaces;
 
-    // Additional Features
     @ElementCollection
     @CollectionTable(name = "property_amenities", joinColumns = @JoinColumn(name = "property_id"))
     @Column(name = "amenity")
@@ -98,18 +94,27 @@ public class Property {
     @Enumerated(EnumType.STRING)
     private AvailabilityStatus availabilityStatus;
 
-
     @ElementCollection
     @CollectionTable(name = "property_images", joinColumns = @JoinColumn(name = "property_id"))
     @Column(name = "image_url", length = 500)
     private List<String> imageUrls = new ArrayList<>();
 
+    // ✅ ADD THIS - Cloudinary public IDs for property images
+    @ElementCollection
+    @CollectionTable(name = "property_image_public_ids", joinColumns = @JoinColumn(name = "property_id"))
+    @Column(name = "public_id")
+    private List<String> imagePublicIds = new ArrayList<>();
 
     @ElementCollection
     @CollectionTable(name = "property_floor_plans", joinColumns = @JoinColumn(name = "property_id"))
     @Column(name = "floor_plan_url", length = 500)
     private List<String> floorPlanUrls = new ArrayList<>();
 
+    // ✅ ADD THIS - Cloudinary public IDs for floor plans
+    @ElementCollection
+    @CollectionTable(name = "property_floor_plan_public_ids", joinColumns = @JoinColumn(name = "property_id"))
+    @Column(name = "public_id")
+    private List<String> floorPlanPublicIds = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id", nullable = false)
@@ -138,7 +143,6 @@ public class Property {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-
     public enum PropertyType {
         LAND, FLAT, HOUSE, APARTMENT, VILLA, COMMERCIAL, PLOT
     }
@@ -148,7 +152,7 @@ public class Property {
     }
 
     public enum FurnishingStatus {
-        FURNISHED, SEMI_FURNISHED, UNFURNISHED,FULLY_FURNISHED
+        FURNISHED, SEMI_FURNISHED, UNFURNISHED, FULLY_FURNISHED
     }
 
     public enum FacingDirection {
@@ -160,6 +164,6 @@ public class Property {
     }
 
     public enum PostedByType {
-        OWNER, DEALER, BUILDER,AGENT
+        OWNER, DEALER, BUILDER, AGENT
     }
 }

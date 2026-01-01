@@ -98,22 +98,18 @@ public class PropertyService {
                                       List<MultipartFile> floorPlans,
                                       User author) {
 
-
         if (request.getPropertyStatus() != Property.PropertyStatus.FOR_SALE &&
                 request.getPropertyStatus() != Property.PropertyStatus.FOR_RENT) {
             throw new IllegalArgumentException("Property status must be FOR_SALE or FOR_RENT");
         }
 
-
         if (images == null || images.isEmpty()) {
             throw new IllegalArgumentException("At least one property image is required");
         }
 
-
         if (images.size() > 10) {
             throw new IllegalArgumentException("Maximum 10 images allowed");
         }
-
 
         if (floorPlans != null && floorPlans.size() > 5) {
             throw new IllegalArgumentException("Maximum 5 floor plans allowed");
@@ -129,21 +125,43 @@ public class PropertyService {
         property.setStatus(status);
         property.setState(request.getState());
 
-
+        // ✅ FIXED - Upload property images and save publicIds
         try {
-            List<String> imageUrls = cloudinaryService.uploadImages(images);
+            List<CloudinaryService.CloudinaryUploadResult> uploadResults =
+                    cloudinaryService.uploadImagesWithPublicIds(images);
+
+            List<String> imageUrls = uploadResults.stream()
+                    .map(CloudinaryService.CloudinaryUploadResult::getUrl)
+                    .collect(Collectors.toList());
+
+            List<String> imagePublicIds = uploadResults.stream()
+                    .map(CloudinaryService.CloudinaryUploadResult::getPublicId)
+                    .collect(Collectors.toList());
+
             property.setImageUrls(imageUrls);
+            property.setImagePublicIds(imagePublicIds);  // ✅ Save publicIds!
             log.info("Uploaded {} property images", imageUrls.size());
         } catch (Exception e) {
             log.error("Error uploading property images", e);
             throw new RuntimeException("Failed to upload property images: " + e.getMessage());
         }
 
-
+        // ✅ FIXED - Upload floor plans and save publicIds
         if (floorPlans != null && !floorPlans.isEmpty()) {
             try {
-                List<String> floorPlanUrls = cloudinaryService.uploadImages(floorPlans);
+                List<CloudinaryService.CloudinaryUploadResult> floorPlanResults =
+                        cloudinaryService.uploadImagesWithPublicIds(floorPlans);
+
+                List<String> floorPlanUrls = floorPlanResults.stream()
+                        .map(CloudinaryService.CloudinaryUploadResult::getUrl)
+                        .collect(Collectors.toList());
+
+                List<String> floorPlanPublicIds = floorPlanResults.stream()
+                        .map(CloudinaryService.CloudinaryUploadResult::getPublicId)
+                        .collect(Collectors.toList());
+
                 property.setFloorPlanUrls(floorPlanUrls);
+                property.setFloorPlanPublicIds(floorPlanPublicIds);  // ✅ Save publicIds!
                 log.info("Uploaded {} floor plans", floorPlanUrls.size());
             } catch (Exception e) {
                 log.error("Error uploading floor plans", e);
@@ -156,6 +174,7 @@ public class PropertyService {
 
         return modelMapper.map(savedProperty, PropertyDto.class);
     }
+
 
 
     @CacheEvict(value = {"properties", "recent-properties"}, allEntries = true)
@@ -217,36 +236,25 @@ public class PropertyService {
             throw new RuntimeException("Unauthorized: You can only delete your own properties");
         }
 
-
         commentRepository.deleteByPropertyId(propertyId);
 
-
-        if (property.getImageUrls() != null && !property.getImageUrls().isEmpty()) {
-            try {
-                for (String imageUrl : property.getImageUrls()) {
-                    cloudinaryService.deleteImage(imageUrl);
-                }
-                log.info("Deleted {} images from Cloudinary", property.getImageUrls().size());
-            } catch (Exception e) {
-                log.warn("Failed to delete images from Cloudinary: {}", e.getMessage());
-            }
+        // ✅ FIXED - Delete property images using publicIds (NOT URLs)
+        if (property.getImagePublicIds() != null && !property.getImagePublicIds().isEmpty()) {
+            cloudinaryService.deleteImages(property.getImagePublicIds());
+            log.info("Deleted {} property images from Cloudinary", property.getImagePublicIds().size());
         }
 
-        if (property.getFloorPlanUrls() != null && !property.getFloorPlanUrls().isEmpty()) {
-            try {
-                for (String floorPlanUrl : property.getFloorPlanUrls()) {
-                    cloudinaryService.deleteImage(floorPlanUrl);
-                }
-                log.info("Deleted {} floor plans from Cloudinary", property.getFloorPlanUrls().size());
-            } catch (Exception e) {
-                log.warn("Failed to delete floor plans from Cloudinary: {}", e.getMessage());
-            }
+        // ✅ FIXED - Delete floor plans using publicIds (NOT URLs)
+        if (property.getFloorPlanPublicIds() != null && !property.getFloorPlanPublicIds().isEmpty()) {
+            cloudinaryService.deleteImages(property.getFloorPlanPublicIds());
+            log.info("Deleted {} floor plans from Cloudinary", property.getFloorPlanPublicIds().size());
         }
 
         propertyRepository.delete(property);
         log.info("Property deleted with ID: {} by user: {} ({})",
                 propertyId, user.getEmail(), isAdmin ? "ADMIN" : "OWNER");
     }
+
 
     @CacheEvict(value = {"properties", "recent-properties"}, allEntries = true)
     public PropertyDto updatePropertyStatus(Long propertyId, Property.PropertyStatus newStatus, User user) {

@@ -57,7 +57,6 @@ public class CommunityPostService {
     @CacheEvict(value = {"community-posts", "recent-community-posts"}, allEntries = true)
     public CommunityPostDto createPost(CreateCommunityPostRequest request, List<MultipartFile> images, User author) {
 
-
         CommunityPost post = modelMapper.map(request, CommunityPost.class);
         post.setAuthor(author);
         PostStatus status = author.getRole().equals(User.Role.ADMIN)
@@ -66,8 +65,22 @@ public class CommunityPostService {
         post.setStatus(status);
 
         if (images != null && !images.isEmpty()) {
-            List<String> imageUrls = cloudinaryService.uploadImages(images);
+            // ✅ FIXED - Upload images and get BOTH URLs and publicIds
+            List<CloudinaryService.CloudinaryUploadResult> uploadResults =
+                    cloudinaryService.uploadImagesWithPublicIds(images);
+
+            // Extract URLs
+            List<String> imageUrls = uploadResults.stream()
+                    .map(CloudinaryService.CloudinaryUploadResult::getUrl)
+                    .collect(Collectors.toList());
+
+            // Extract publicIds for future deletion
+            List<String> publicIds = uploadResults.stream()
+                    .map(CloudinaryService.CloudinaryUploadResult::getPublicId)
+                    .collect(Collectors.toList());
+
             post.setImageUrls(imageUrls);
+            post.setPublicIds(publicIds);  // ✅ Save publicIds!
         }
 
         CommunityPost savedPost = communityPostRepository.save(post);
@@ -75,6 +88,7 @@ public class CommunityPostService {
 
         return modelMapper.map(savedPost, CommunityPostDto.class);
     }
+
 
     @CacheEvict(value = {"community-posts", "recent-community-posts"}, allEntries = true)
     public CommunityPostDto approvePost(Long postId) {
@@ -122,10 +136,8 @@ public class CommunityPostService {
 
     @CacheEvict(value = {"community-posts","recent-community-posts"}, allEntries = true)
     public void deleteCommunityPost(Long postId, User user) {
-        // Find the community post
         CommunityPost post = communityPostRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("Community post not found with ID: " + postId));
-
 
         boolean isAdmin = user.getRole().equals(User.Role.ADMIN);
         boolean isOwner = post.getAuthor().getId().equals(user.getId());
@@ -134,8 +146,12 @@ public class CommunityPostService {
             throw new RuntimeException("Unauthorized: You can only delete your own community posts");
         }
 
-        commentRepository.deleteByCommunityPostId(postId);
+        // ✅ ONLY THIS - Delete multiple images using List<String>
+        if (post.getPublicIds() != null && !post.getPublicIds().isEmpty()) {
+            cloudinaryService.deleteImages(post.getPublicIds());
+        }
 
+        commentRepository.deleteByCommunityPostId(postId);
         communityPostRepository.delete(post);
 
         log.info("Community post deleted with ID: {} by user: {} ({})",
@@ -144,6 +160,8 @@ public class CommunityPostService {
                 isAdmin ? "ADMIN" : "OWNER"
         );
     }
+
+
 
     @Cacheable(value = "recent-community-posts", key = "#days")
     public List<CommunityPostDto> getRecentPosts(int days) {

@@ -23,13 +23,13 @@ public class CommunityPost {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = true)  // Changed to optional
+    @Column(nullable = true)
     private String title;
 
-    @Column(columnDefinition = "TEXT", nullable = false)  // Required field
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
-    @Column(nullable = true)  // Optional field
+    @Column(nullable = true)
     private String location;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -41,6 +41,13 @@ public class CommunityPost {
             joinColumns = @JoinColumn(name = "community_post_id"))
     @Column(name = "image_url")
     private List<String> imageUrls = new ArrayList<>();
+
+    //  Cloudinary public IDs for deletion
+    @ElementCollection
+    @CollectionTable(name = "community_post_public_ids",
+            joinColumns = @JoinColumn(name = "community_post_id"))
+    @Column(name = "public_id")
+    private List<String> publicIds = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Builder.Default

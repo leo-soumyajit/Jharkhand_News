@@ -1,7 +1,6 @@
 package com.soumyajit.jharkhand_project.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,13 +23,12 @@ public class Job {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)  // REQUIRED
+    @Column(nullable = false)
     private String title;
 
-    @Column(columnDefinition = "TEXT", nullable = false)  // REQUIRED
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String description;
 
-    // All fields below are now OPTIONAL
     private String company;
 
     private String location;
@@ -49,7 +47,14 @@ public class Job {
     @CollectionTable(name = "job_images",
             joinColumns = @JoinColumn(name = "job_id"))
     @Column(name = "image_url")
-    private List<String> imageUrls = new ArrayList<>();  // REQUIRED (at least one image)
+    private List<String> imageUrls = new ArrayList<>();
+
+    // Cloudinary public IDs for deletion
+    @ElementCollection
+    @CollectionTable(name = "job_public_ids",
+            joinColumns = @JoinColumn(name = "job_id"))
+    @Column(name = "public_id")
+    private List<String> publicIds = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Builder.Default

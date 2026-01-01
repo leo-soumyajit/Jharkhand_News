@@ -56,8 +56,6 @@ public class JobService {
             throw new IllegalArgumentException("At least one image is required");
         }
 
-
-
         Job job = modelMapper.map(request, Job.class);
         job.setAuthor(author);
 
@@ -67,14 +65,29 @@ public class JobService {
 
         job.setStatus(status);
 
-        List<String> imageUrls = cloudinaryService.uploadImages(images);
+        // ✅ FIXED - Upload images and get BOTH URLs and publicIds
+        List<CloudinaryService.CloudinaryUploadResult> uploadResults =
+                cloudinaryService.uploadImagesWithPublicIds(images);
+
+        // Extract URLs
+        List<String> imageUrls = uploadResults.stream()
+                .map(CloudinaryService.CloudinaryUploadResult::getUrl)
+                .collect(Collectors.toList());
+
+        // Extract publicIds for future deletion
+        List<String> publicIds = uploadResults.stream()
+                .map(CloudinaryService.CloudinaryUploadResult::getPublicId)
+                .collect(Collectors.toList());
+
         job.setImageUrls(imageUrls);
+        job.setPublicIds(publicIds);  // ✅ Save publicIds!
 
         Job savedJob = jobRepository.save(job);
         log.info("Created job with ID: {} by user: {}", savedJob.getId(), author.getEmail());
 
         return modelMapper.map(savedJob, JobDto.class);
     }
+
 
 
 
@@ -124,11 +137,9 @@ public class JobService {
 
     @CacheEvict(value = {"jobs", "recent-jobs"}, allEntries = true)
     public void deleteJob(Long jobId, User user) {
-        // Find the job
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new EntityNotFoundException("Job not found with ID: " + jobId));
 
-        // Security check - only admin or job owner can delete
         boolean isAdmin = user.getRole().equals(User.Role.ADMIN);
         boolean isOwner = job.getAuthor().getId().equals(user.getId());
 
@@ -136,7 +147,11 @@ public class JobService {
             throw new RuntimeException("Unauthorized: You can only delete your own jobs");
         }
 
-        // Delete the job
+        // ✅ FIXED - Use deleteImages() with List
+        if (job.getPublicIds() != null && !job.getPublicIds().isEmpty()) {
+            cloudinaryService.deleteImages(job.getPublicIds());
+        }
+
         jobRepository.delete(job);
 
         log.info("Job deleted with ID: {} by user: {} ({})",
@@ -145,6 +160,8 @@ public class JobService {
                 isAdmin ? "ADMIN" : "OWNER"
         );
     }
+
+
 
     @Cacheable(value = "recent-jobs", key = "#days")
     public List<JobDto> getRecentJobs(int days) {
