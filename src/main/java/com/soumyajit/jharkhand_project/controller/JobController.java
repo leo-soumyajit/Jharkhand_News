@@ -17,6 +17,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 @RestController
 @RequestMapping("/jobs")
@@ -30,16 +34,43 @@ public class JobController {
     private final ObjectMapper objectMapper;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<JobDto>>> getApprovedJobs() {
+    public ResponseEntity<ApiResponse<Page<JobDto>>> getApprovedJobs(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
         try {
-            List<JobDto> jobs = jobService.getApprovedJobs();
-            return ResponseEntity.ok(ApiResponse.success("Jobs retrieved successfully", jobs));
+            log.info("GET /api/v1/jobs - page: {}, size: {}", page, size);
+
+            // Validate page and size
+            if (page < 0) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Page number cannot be negative"));
+            }
+
+            if (size < 1 || size > 100) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Page size must be between 1 and 100"));
+            }
+
+            // Create Pageable object (sorting already in repository method)
+            Pageable pageable = PageRequest.of(page, size);
+
+            // Fetch paginated jobs
+            Page<JobDto> jobs = jobService.getApprovedJobs(pageable);
+
+            log.info("Successfully retrieved {} jobs", jobs.getNumberOfElements());
+
+            return ResponseEntity.ok(
+                    ApiResponse.success("Jobs retrieved successfully", jobs)
+            );
+
         } catch (Exception e) {
-            log.error("Error retrieving approved jobs", e);
+            log.error("Error retrieving approved jobs - page: {}, size: {}", page, size, e);
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error("Failed to retrieve jobs"));
         }
     }
+
 
     @GetMapping("/pending")
     @PreAuthorize("hasRole('ADMIN')")

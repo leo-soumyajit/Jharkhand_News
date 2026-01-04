@@ -22,6 +22,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 @Transactional
@@ -35,12 +37,21 @@ public class JobService {
     private final ModelMapper modelMapper;
     private final NotificationService notificationService;
 
-    @Cacheable(value = "jobs", key = "'approved'")
-    public List<JobDto> getApprovedJobs() {
-        List<Job> jobs = jobRepository.findByStatusOrderByCreatedAtDesc(PostStatus.APPROVED);
-        return jobs.stream()
-                .map(job -> modelMapper.map(job, JobDto.class))
-                .collect(Collectors.toList());
+//    @Cacheable(value = "jobs", key = "'approved-page-' + #pageable.pageNumber + '-size-' + #pageable.pageSize")
+    public Page<JobDto> getApprovedJobs(Pageable pageable) {
+        log.info("Fetching approved jobs - Page: {}, Size: {}",
+                pageable.getPageNumber(), pageable.getPageSize());
+
+        Page<Job> jobs = jobRepository.findByStatusOrderByCreatedAtDesc(
+                PostStatus.APPROVED,
+                pageable
+        );
+
+        log.info("Found {} jobs out of {} total",
+                jobs.getNumberOfElements(), jobs.getTotalElements());
+
+        // Convert Page<Job> to Page<JobDto>
+        return jobs.map(job -> modelMapper.map(job, JobDto.class));
     }
 
     @CacheEvict(value = {"jobs", "recent-jobs"}, allEntries = true)
