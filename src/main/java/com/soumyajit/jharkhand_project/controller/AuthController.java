@@ -7,6 +7,7 @@ import com.soumyajit.jharkhand_project.repository.UserRepository;
 import com.soumyajit.jharkhand_project.security.JwtUtils;
 import com.soumyajit.jharkhand_project.service.AuthService;
 import com.soumyajit.jharkhand_project.service.GeoIpService;
+import com.soumyajit.jharkhand_project.service.LoginHistoryService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class AuthController {
     private final GeoIpService geoIpService;
     private final JwtUtils jwtUtils;
     private final UserRepository userRepository;
+    private final LoginHistoryService loginHistoryService;
 
     @PostMapping("/send-otp")
     public ResponseEntity<?> sendOtp(@Valid @RequestBody SendOtpRequest request) {
@@ -61,6 +63,12 @@ public class AuthController {
 
         // Call login and get reply object
         LoginReply loginReply = authService.login(body.get("email"), body.get("password"), device, location, loginTime);
+
+        // Save login history
+        User user = userRepository.findByEmail(body.get("email"))
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        loginHistoryService.saveLoginHistory(user, device, ip, location, User.AuthProvider.LOCAL, true);
+
         return ResponseEntity.ok(Map.of(
                 "accessToken", loginReply.getToken(),
                 "tokenType", "Bearer",
@@ -70,7 +78,7 @@ public class AuthController {
 
     // OAuth2 Google Login - Get JWT Token after authentication
     @GetMapping("/google/token")
-    public ResponseEntity<?> getGoogleToken(@AuthenticationPrincipal OAuth2User oauth2User) {
+    public ResponseEntity<?> getGoogleToken(@AuthenticationPrincipal OAuth2User oauth2User, HttpServletRequest request) {
         try {
             if (oauth2User == null) {
                 return ResponseEntity.status(401).body(Map.of("error", "Not authenticated with Google"));
@@ -82,6 +90,15 @@ public class AuthController {
 
             // Generate JWT token
             String token = jwtUtils.generateTokenFromUsername(user.getEmail());
+
+            // Extract request info for login history
+            String device = request.getHeader("User-Agent");
+            String ip = request.getHeader("X-Forwarded-For");
+            if (ip == null) ip = request.getRemoteAddr();
+            String location = geoIpService.getLocation(ip);
+
+            // Save login history for OAuth login
+            loginHistoryService.saveLoginHistory(user, device, ip, location, User.AuthProvider.GOOGLE, true);
 
             Map<String, Object> response = new HashMap<>();
             response.put("accessToken", token);

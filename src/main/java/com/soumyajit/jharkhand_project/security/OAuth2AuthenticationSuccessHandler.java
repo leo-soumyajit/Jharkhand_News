@@ -2,6 +2,8 @@ package com.soumyajit.jharkhand_project.security;
 
 import com.soumyajit.jharkhand_project.entity.User;
 import com.soumyajit.jharkhand_project.repository.UserRepository;
+import com.soumyajit.jharkhand_project.service.GeoIpService;
+import com.soumyajit.jharkhand_project.service.LoginHistoryService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -23,6 +25,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     private final JwtUtils jwtUtils;
     private final UserRepository userRepository;
+    private final LoginHistoryService loginHistoryService;
+    private final GeoIpService geoIpService;
 
     @Value("${app.oauth2.redirect-uri:https://jharkhandbiharupdates.com/auth/google/callback}")
     private String redirectUri;
@@ -46,6 +50,15 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
         // Generate JWT token
         String token = jwtUtils.generateTokenFromUsername(user.getEmail());
+
+
+        String device = request.getHeader("User-Agent");
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null) ip = request.getRemoteAddr();
+        String location = geoIpService.getLocation(ip);
+
+        loginHistoryService.saveLoginHistory(user, device, ip, location, user.getAuthProvider(), true);
+        log.info("Login history saved for OAuth user: {}", email);
 
         // Redirect to frontend with token
         String targetUrl = UriComponentsBuilder.fromUriString(redirectUri)
