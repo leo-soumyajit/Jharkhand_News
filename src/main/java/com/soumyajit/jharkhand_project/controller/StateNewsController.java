@@ -7,7 +7,9 @@ import com.soumyajit.jharkhand_project.dto.StateNewsDto;
 import com.soumyajit.jharkhand_project.dto.UpdateStateNewsRequest;
 import com.soumyajit.jharkhand_project.entity.NewsCategory;
 import com.soumyajit.jharkhand_project.entity.User;
+import com.soumyajit.jharkhand_project.entity.ViewHistory;
 import com.soumyajit.jharkhand_project.service.StateNewsService;
+import com.soumyajit.jharkhand_project.service.ViewHistoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -15,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -37,6 +40,7 @@ public class StateNewsController {
 
     private final StateNewsService stateNewsService;
     private final ObjectMapper objectMapper;
+    private final ViewHistoryService viewHistoryService;
 
     //give all
     @GetMapping("/{stateName}")
@@ -74,15 +78,24 @@ public class StateNewsController {
 
     //get news by id
     @GetMapping("/details/{id}")
-    public ResponseEntity<ApiResponse<StateNewsDto>> getNewsById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<StateNewsDto>> getNewsById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
         try {
             StateNewsDto news = stateNewsService.getNewsById(id);
+
+            // Track view history if user is logged in
+            if (user != null) {
+                viewHistoryService.trackView(user, ViewHistory.ContentType.STATE_NEWS, id);
+            }
+
             return ResponseEntity.ok(ApiResponse.success("News details retrieved successfully", news));
         } catch (Exception e) {
             log.error("Error retrieving news with ID: {}", id, e);
             return ResponseEntity.notFound().build();
         }
     }
+
 
     //create news
     @PostMapping
